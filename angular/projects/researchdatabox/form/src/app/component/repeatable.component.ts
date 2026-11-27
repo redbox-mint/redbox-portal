@@ -146,6 +146,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
   private rowReplacement: Promise<void> = Promise.resolve();
   private readonly importedEntries = new WeakSet<RepeatableElementEntry>();
+  private readonly rowStructureVersion = signal(0);
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
@@ -170,6 +171,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   private get rowControlsAligned(): boolean {
+    this.rowStructureVersion();
     const controls = this.model?.formControl?.controls;
     return !!controls && controls.length === this.compDefMapEntries.length &&
       this.compDefMapEntries.every((entry, index) => entry.defEntry.model?.formControl === controls[index]);
@@ -736,6 +738,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected rebuildLineagePaths(options?: RepeatableSetValueOptions) {
+    this.rowStructureVersion.update(version => version + 1);
     for (let index = 0; index < this.compDefMapEntries.length; index++) {
       const indexStr = index.toString();
       const lineagePath = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
@@ -903,6 +906,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     });
     const control = following?.defEntry.model?.formControl;
     model.addElement(entry.defEntry.model, options, control ? array.controls.indexOf(control) : array.length);
+    this.rowStructureVersion.update(version => version + 1);
   }
 
   public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
@@ -1043,10 +1047,10 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     const config = this.fieldConfig.config ??= {};
-    // An aggregate-disabled array can still contain independently disabled rows.
-    if (disabled === (config.disabled === true)) return;
-    config.disabled = disabled;
     const array = this.formControl;
+    // A layout can disable the control without changing the model configuration.
+    if (disabled === (config.disabled === true) && disabled === (array?.disabled ?? false)) return;
+    config.disabled = disabled;
     if (!array) return;
 
     if (disabled) {

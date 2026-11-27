@@ -705,6 +705,8 @@ describe("DataLocationComponent", () => {
             .subscribe(event => errors.push(String(event.error)));
 
         try {
+            const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+            await component.openModal();
             fakeUppy.getState.and.returnValue({ currentUploads: { active: {} } });
             await formComponent.saveForm({ force: true });
             expect(create).not.toHaveBeenCalled();
