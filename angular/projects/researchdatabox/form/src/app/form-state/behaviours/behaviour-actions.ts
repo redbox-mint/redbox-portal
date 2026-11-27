@@ -96,7 +96,7 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       ...(recordImport ? { recordImport } : {}),
-      ...(recordImport === 'changed-selection' ? { [recordImportApplications]: applications } : {}),
+      ...(recordImport && recordImport !== 'no-import' ? { [recordImportApplications]: applications } : {}),
     })
   );
   // The event bus delivers synchronously, and expression consumers register before awaiting anything.

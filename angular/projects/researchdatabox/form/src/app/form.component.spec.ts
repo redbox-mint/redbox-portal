@@ -1454,7 +1454,7 @@ describe('FormComponent', () => {
   });
 
   const creatorImportConfig = (initial: { name: string }[], disabled = false) => {
-    const oidTemplate = 'event.value.oid';
+    const oidTemplate = '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)';
     const template = '$map(event.value.contributor_ci, function($creator) {{"name": $creator.family_name}})';
     const enableTemplate = 'event.value ? false : true';
     const creators = contributorList(initial, disabled);
@@ -1645,17 +1645,40 @@ describe('FormComponent', () => {
     ]);
   });
 
-  for (const failure of ['HTTP fetch', 'creator expression', 'row application'] as const) {
+  for (const failure of ['OID transform', 'HTTP fetch', 'creator expression', 'description expression', 'row application'] as const) {
     it(`blocks first save after a failed ${failure} and applies the same-OID retry`, async () => {
       const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
+      const descriptionTemplate = 'event.value.description ?: ""';
+      config.componentDefinitions!.push({
+        name: 'description',
+        component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel', config: { value: 'Previous description' } },
+        expressions: [{
+          name: 'description-from-data-record',
+          config: {
+            conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
+            target: 'model.value', hasTemplate: true, template: descriptionTemplate,
+          },
+        }],
+      });
+      config.componentDefinitions!.push({
+        name: 'dataRecord',
+        component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel', config: { value: 'old-link' } },
+      });
       const evaluate = assets.entries[0].callable;
-      let failExpression = failure === 'creator expression';
+      let templateFailed = false;
       assets.entries[0].callable = async (key, path, context) => {
-        if (failExpression && path.includes('expressions') && path[path.length - 3] === 1) {
-          failExpression = false;
-          throw new Error('Temporary creator template failure');
+        const description = path[0] === 'componentDefinitions' && path[1] === 1;
+        if (!templateFailed && (
+          (failure === 'OID transform' && path.includes('processors')) ||
+          (failure === 'creator expression' && path.includes('expressions') && !description && path[path.length - 3] === 1) ||
+          (failure === 'description expression' && description)
+        )) {
+          templateFailed = true;
+          throw new Error(`Temporary ${failure} failure`);
         }
-        return evaluate(key, path, context);
+        return description ? jsonataCompileAndEvaluate(descriptionTemplate, context) : evaluate(key, path, context);
       };
       const { fixture, formComponent } = await createFormAndWaitForReady(config, {
         oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
@@ -1678,7 +1701,7 @@ describe('FormComponent', () => {
           failFetch = false;
           throw new Error('Temporary HTTP failure');
         }
-        return { contributor_ci: [{ family_name: 'Imported creator' }] };
+        return { contributor_ci: [{ family_name: 'Imported creator' }], description: 'Imported description' };
       });
       const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
         success: true, oid: 'new-draft', message: '', data: null,
@@ -1687,27 +1710,68 @@ describe('FormComponent', () => {
       spyOn(fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
       const bus = TestBed.inject(FormComponentEventBus);
       const select = async (previous: string) => {
-        fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
-          fieldId: '/dataRecord', sourceId: '*', value: { oid: 'new-link' }, previousValue: { oid: previous },
-        })));
+        fixture.ngZone!.run(() => {
+          formComponent.form!.get('dataRecord')!.setValue({ oid: 'new-link' }, { emitEvent: false });
+          bus.publish(createFieldValueChangedEvent({
+            fieldId: '/dataRecord', sourceId: '*', value: { oid: 'new-link' }, previousValue: { oid: previous },
+          }));
+        });
         await fixture.whenStable();
       };
       await select('old-link');
-      expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Previous creator' }]);
+      if (failure !== 'description expression') {
+        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Previous creator' }]);
+      }
+      if (failure === 'description expression') {
+        expect(formComponent.form!.get('description')?.value).toBe('Previous description');
+      }
       await formComponent.saveForm({ force: true });
       expect(create).not.toHaveBeenCalled();
 
       await select('new-link');
-      expect(fetch.calls.allArgs()).toEqual([['new-link'], ['new-link']]);
+      expect(fetch.calls.allArgs()).toEqual(failure === 'OID transform' ? [['new-link']] : [['new-link'], ['new-link']]);
       await formComponent.saveForm({ force: true });
-      expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Imported creator' }] }, 'dataPublication', '');
+      expect(create).toHaveBeenCalledOnceWith(
+        { creators: [{ name: 'Imported creator' }], description: 'Imported description', dataRecord: { oid: 'new-link' } },
+        'dataPublication', '',
+      );
     });
   }
+
+  it('releases a rejected debounced metadata condition without creating a pending import', async () => {
+    const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
+    const condition = "event.fieldId = '/dataRecord'";
+    Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs: 25 });
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) =>
+      path.at(-1) === 'condition' ? jsonataCompileAndEvaluate(condition, context) : evaluate(key, path, context);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, assets);
+    const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
+    const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
+      success: true, oid: 'new-draft', message: '', data: null,
+    });
+    spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+    spyOn(fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
+
+    fixture.ngZone!.run(() => TestBed.inject(FormComponentEventBus).publish(createFieldValueChangedEvent({
+      fieldId: '/unrelated', sourceId: '*', value: 'New text', previousValue: 'Old text',
+    })));
+    await fixture.whenStable();
+    expect(fetch).not.toHaveBeenCalled();
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Previous creator' }] }, 'dataPublication', '');
+  });
 
   it('loads persisted row proofs after create before a linked record import and review save', async () => {
     setWindowSearch('?dataRecordOid=old-source');
     const createForm = creatorImportConfig([{ name: 'Same name' }]);
-    createForm.config.behaviours![0].debounceMs = 25;
+    const condition = "event.fieldId = '/dataRecord'";
+    Object.assign(createForm.config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs: 25 });
+    const evaluateCreate = createForm.assets.entries[0].callable;
+    createForm.assets.entries[0].callable = (key, path, context) =>
+      path.at(-1) === 'condition' ? jsonataCompileAndEvaluate(condition, context) : evaluateCreate(key, path, context);
     const createEditor = await createFormAndWaitForReady(createForm.config, {
       oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
     }, undefined, createForm.assets);

@@ -1,4 +1,4 @@
-import { debounceTime, filter, Observable, Subscription, tap } from 'rxjs';
+import { concatMap, debounceTime, filter, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -81,24 +81,31 @@ export class BehaviourHandler {
 
     const observable = this.getEventObservable();
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const fetchesMetadata = this.fetchesMetadata();
-    const source$ = debounceMs > 0 ? observable.pipe(
-      filter(event => !fetchesMetadata || this.canQueueMetadataLoad(event)),
-      tap(event => {
-        if (!fetchesMetadata) return;
-        this.queuedMetadataLoad = true;
-        // A reselection can replace the original event before the fetch has started.
-        if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED) {
-          const oid = selectedRecordOid(event.value);
-          if (oid && oid !== selectedRecordOid(event.previousValue)) this.rememberSelection(oid, event.fieldId);
+    const matchesBeforeDebounce = debounceMs > 0 && this.fetchesMetadata();
+    const eligibleEvents = matchesBeforeDebounce ? observable.pipe(
+      filter(event => this.canQueueMetadataLoad(event)),
+      tap(() => this.pendingMetadataLoads++),
+      concatMap(async event => {
+        try {
+          if (!await this.matches(event, await this.getCompiledTemplateEvaluator())) return null;
+          this.queuedMetadataLoad = true;
+          // Preserve a changed selection when a same-OID event replaces it during the debounce.
+          this.trackSelection(event);
+          return event;
+        } catch (error) {
+          await this.handleExecutionError(error, event);
+          return null;
+        } finally {
+          this.pendingMetadataLoads--;
         }
       }),
-      debounceTime(debounceMs)
+      filter(event => event !== null)
     ) : observable;
+    const source$ = debounceMs > 0 ? eligibleEvents.pipe(debounceTime(debounceMs)) : eligibleEvents;
     this.subscriptions.push(
       source$.subscribe(event => {
         this.queuedMetadataLoad = false;
-        void this.execute(event);
+        void this.execute(event, matchesBeforeDebounce);
       })
     );
   }
@@ -140,11 +147,32 @@ export class BehaviourHandler {
       : canMatchJSONataEvent(event, this.behaviour);
   }
 
-  private rememberSelection(oid: string, fieldId?: string) {
-    if (this.pendingSelection?.oid !== oid || this.pendingSelection.fieldId !== fieldId) {
-      this.pendingSelection = { oid, fieldId };
+  private trackSelection(event: FormComponentEvent): typeof this.pendingSelection {
+    if (event.type !== FormComponentEventType.FIELD_VALUE_CHANGED) return undefined;
+    const oid = selectedRecordOid(event.value);
+    const pending = this.pendingSelection;
+    const sameField = pending !== undefined && pending.fieldId === event.fieldId;
+    if (!oid) {
+      if (sameField) this.pendingSelection = undefined;
+      return undefined;
     }
-    return this.pendingSelection;
+    if (sameField && pending.oid === oid) return pending;
+    if (oid !== selectedRecordOid(event.previousValue)) {
+      return this.pendingSelection = { oid, fieldId: event.fieldId };
+    }
+    return undefined;
+  }
+
+  private matches(event: FormComponentEvent, evaluator: BehaviourCompiledTemplateEvaluator): Promise<boolean> {
+    return matchBehaviourCondition(
+      this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
+        behaviourIndex: this.behaviourIndex,
+        compiledTemplateEvaluator: evaluator,
+        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
+        requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
+        querySource: this.getEventQuerySource(event),
+      }
+    );
   }
 
   /**
@@ -156,7 +184,7 @@ export class BehaviourHandler {
    * 3. run actions in order
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
-  private async execute(event: FormComponentEvent): Promise<void> {
+  private async execute(event: FormComponentEvent, conditionMatched: boolean): Promise<void> {
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
     // Once a runOnFormReady behaviour has completed its initial load pipeline,
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
@@ -180,37 +208,19 @@ export class BehaviourHandler {
     const fetchesMetadata = this.fetchesMetadata();
     if (fetchesMetadata) this.pendingMetadataLoads++;
     try {
-      const condition = this.behaviour.condition;
-      const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
-      const compiledTemplateEvaluator = await this.getCompiledTemplateEvaluator();
-      const requestParams = (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>;
+      const evaluator = await this.getCompiledTemplateEvaluator();
+      if (!conditionMatched && !await this.matches(event, evaluator)) return;
 
-      const matches = await matchBehaviourCondition(condition, conditionKind, event, this.behaviour, {
-        behaviourIndex: this.behaviourIndex,
-        compiledTemplateEvaluator,
-        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
-        requestParams,
-        querySource: this.getEventQuerySource(event),
-      });
-
-      if (!matches) {
-        return;
-      }
-
-      let value = (event as { value?: unknown }).value;
+      const selection = fetchesMetadata ? this.trackSelection(event) : undefined;
       const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
-      const previousOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.previousValue) : '';
-      if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED && !selectedOid &&
-          this.pendingSelection?.fieldId === event.fieldId) {
-        this.pendingSelection = undefined;
-      }
-      let recordImport: FieldValueChangedEvent['recordImport'];
-      let selection: typeof this.pendingSelection;
+      let value = (event as { value?: unknown }).value;
+      let recordImport: FieldValueChangedEvent['recordImport'] = fetchesMetadata ? 'no-import' : undefined;
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
-        const fetchesSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
-          typeof value === 'string' && !!selectedOid && value.trim() === selectedOid;
-        const changesSelection = fetchesSelection && (selectedOid !== previousOid || selectedOid === this.pendingSelection?.oid);
-        if (changesSelection) selection = this.rememberSelection(selectedOid, event.fieldId);
+        if (processor.type === FormBehaviourProcessorType.FetchMetadata && typeof value === 'string' && value.trim()) {
+          recordImport = selectedOid === value.trim()
+            ? (selection ? 'changed-selection' : 'same-selection')
+            : 'metadata-refresh';
+        }
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -219,9 +229,6 @@ export class BehaviourHandler {
           logger: this.ctx.logger,
           metadataCache: this.metadataCache,
         });
-        recordImport = fetchesSelection
-          ? (changesSelection ? 'changed-selection' : 'same-selection')
-          : undefined;
       }
 
       if (selection && selection !== this.pendingSelection) return;
@@ -233,11 +240,7 @@ export class BehaviourHandler {
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
-      this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
-        error,
-        behaviour: this.behaviour.name,
-      });
-      await this.executeActions('onError', this.behaviour.onError ?? [], (event as { value?: unknown }).value, event);
+      await this.handleExecutionError(error, event);
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
@@ -247,6 +250,14 @@ export class BehaviourHandler {
         this.isProcessingFormReadyExecution = false;
       }
     }
+  }
+
+  private async handleExecutionError(error: unknown, event: FormComponentEvent): Promise<void> {
+    this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
+      error,
+      behaviour: this.behaviour.name,
+    });
+    await this.executeActions('onError', this.behaviour.onError ?? [], (event as { value?: unknown }).value, event);
   }
 
   get isLoadingMetadata(): boolean {

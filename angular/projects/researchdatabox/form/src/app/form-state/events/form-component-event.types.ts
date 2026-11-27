@@ -50,7 +50,7 @@ export interface FieldValueChangedEvent extends FieldScopedEventBase {
   readonly type: 'field.value.changed';
   readonly value: any;
   readonly previousValue?: any;
-  readonly recordImport?: 'changed-selection' | 'same-selection';
+  readonly recordImport?: 'changed-selection' | 'same-selection' | 'metadata-refresh' | 'no-import';
   readonly [recordImportApplications]?: Promise<void>[];
 }
 

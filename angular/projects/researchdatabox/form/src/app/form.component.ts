@@ -91,6 +91,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { DataLocationComponent } from './component/data-location.component';
+import { PublishDataLocationSelectorComponent } from './component/publish-data-location-selector.component';
 import { FileUploadComponent } from './component/file-upload.component';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormSaveRows } from './form-save-rows';
@@ -1226,7 +1227,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private prepareFieldsForCreate(entries: FormFieldCompMapEntry[]): string | undefined {
     for (const { component } of entries) {
-      if (component instanceof DataLocationComponent || component instanceof FileUploadComponent) {
+      if (component instanceof DataLocationComponent || component instanceof FileUploadComponent ||
+          component instanceof PublishDataLocationSelectorComponent) {
         const problem = component.prepareForCreate();
         if (problem) return problem;
       }

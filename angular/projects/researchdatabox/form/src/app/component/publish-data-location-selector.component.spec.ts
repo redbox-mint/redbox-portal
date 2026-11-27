@@ -1,7 +1,10 @@
+import { Location } from "@angular/common";
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
-import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
+import { FormConfigFrame, jsonataCompileAndEvaluate } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { FormComponentEventBus, FormComponentEventType } from "../form-state";
+import { SimpleInputComponent } from "./simple-input.component";
 import { PublishDataLocationRefreshComponent } from "./publish-data-location-refresh.component";
 import { PublishDataLocationSelectorComponent } from "./publish-data-location-selector.component";
 
@@ -11,6 +14,7 @@ describe("PublishDataLocationSelectorComponent", () => {
       declarations: {
         PublishDataLocationRefreshComponent,
         PublishDataLocationSelectorComponent,
+        SimpleInputComponent,
       },
     });
   });
@@ -142,6 +146,150 @@ describe("PublishDataLocationSelectorComponent", () => {
     await fixture.whenStable();
 
     expect((formComponent as any).form.value.dataLocations[0].notes).toBe("updated");
+  });
+
+  it("saves zero, one, or many refreshed locations as an array on review", async () => {
+    const oidTemplate = `($record := formData.dataRecord ?: formData.mainTab.about.dataRecord;
+      $exists($record.oid) ? $record.oid : ($exists($record.redboxOid) ? $record.redboxOid :
+        ($exists($record) ? $record : runtimeContext.requestParams.dataRecordOid)))`;
+    const refreshTemplate = `(
+      $freshLocations := event.value.dataLocations ?: [];
+      $currentLocations := formData.dataLocations ?: formData.mainTab.data.dataLocations ?: [];
+      $locationKey := function($location) {
+        $string($location.type ?: "") & "|" &
+          $string($location.fileId ?: $location.location ?: $location.uploadUrl ?: $location.name ?: "")
+      };
+      $map($freshLocations, function($freshLocation) {(
+        $matchingCurrentLocation := $currentLocations[$locationKey($) = $locationKey($freshLocation)][0];
+        $exists($matchingCurrentLocation.selected)
+          ? $merge([$freshLocation, {"selected": $matchingCurrentLocation.selected}])
+          : $freshLocation;
+      )})
+    )`;
+    const retained = { type: "url" as const, location: "https://example.com", selected: true };
+    const additional = { type: "physical", location: "Archive" };
+    const config: FormConfigFrame = {
+      name: "publication",
+      componentDefinitions: [{
+        name: "dataRecord",
+        component: { class: "SimpleInputComponent" },
+        model: { class: "SimpleInputModel", config: { value: "" } },
+      }, {
+        name: "dataPubLocationRefresherTrigger",
+        component: { class: "PublishDataLocationRefreshComponent" },
+      }, {
+        name: "dataLocations",
+        component: { class: "PublishDataLocationSelectorComponent" },
+        model: { class: "PublishDataLocationSelectorModel", config: { value: [retained] } },
+        expressions: [{
+          name: "location-refresh",
+          config: {
+            conditionKind: "jsonpointer", condition: "/dataPubLocationRefresher::field.value.changed",
+            runOnFormReady: false, target: "model.value", hasTemplate: true, template: refreshTemplate,
+          },
+        }],
+      }],
+      behaviours: [{
+        name: "fetch-on-refresh",
+        conditionKind: "jsonpointer", condition: "/dataPubLocationRefresherTrigger::field.value.changed",
+        runOnFormReady: false,
+        processors: [
+          { type: "jsonataTransform", config: { hasTemplate: true, template: oidTemplate } },
+          { type: "fetchMetadata" },
+        ],
+        actions: [{ type: "emitEvent", config: {
+          eventType: "field.value.changed", fieldId: "/dataPubLocationRefresher", sourceId: "*",
+        } }],
+      }],
+    };
+    let failTemplate = false;
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: "publication", formName: "", recordType: "dataPublication", editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, {
+      entries: [{
+        urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/",
+        callable: (_key, path, context) => {
+          if (path.includes("processors")) return jsonataCompileAndEvaluate(oidTemplate, context);
+          if (failTemplate) throw new Error("Temporary refresh template failure");
+          return jsonataCompileAndEvaluate(refreshTemplate, context);
+        },
+      }],
+    });
+    const refresh = fixture.debugElement.query(By.directive(PublishDataLocationRefreshComponent))
+      .componentInstance as PublishDataLocationRefreshComponent;
+    const click = async () => {
+      fixture.ngZone!.run(() => refresh.onClick());
+      await fixture.whenStable();
+    };
+    const fetch = spyOn(formComponent.recordService, "getRecordMeta");
+    const update = spyOn(formComponent.recordService, "update").and.resolveTo({
+      success: true, oid: "publication", message: "", data: null,
+    });
+
+    await click();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(formComponent.form!.value.dataLocations).toEqual([retained]);
+
+    formComponent.form!.get("dataRecord")!.setValue("linked-record");
+    failTemplate = true;
+    fetch.and.resolveTo({ dataLocations: [] });
+    await click();
+    expect(fetch).toHaveBeenCalledOnceWith("linked-record");
+    expect(formComponent.form!.value.dataLocations).toEqual([retained]);
+    failTemplate = false;
+
+    const fresh = { ...retained, selected: false, notes: "Fresh notes" };
+    const selected = { ...fresh, selected: true };
+    for (const [dataLocations, expected] of [
+      [[fresh], [selected]],
+      [[fresh, additional], [selected, additional]],
+      [[], []],
+    ]) {
+      update.calls.reset();
+      fetch.and.resolveTo({ dataLocations });
+      await click();
+      await formComponent.saveForm({ force: true, targetStep: "review" });
+      expect(update).toHaveBeenCalledOnceWith(
+        "publication", { dataRecord: "linked-record", dataLocations: expected }, "review", { formSave: true },
+      );
+    }
+  });
+
+  it("keeps pending publication notes available until they are applied before creating", async () => {
+    const location = { type: "url" as const, location: "https://example.com", notes: "Stored note", selected: true };
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: "publication",
+      componentDefinitions: [{
+        name: "dataLocations",
+        component: { class: "PublishDataLocationSelectorComponent" },
+        model: { class: "PublishDataLocationSelectorModel", config: { value: [location] } },
+      }],
+    }, { oid: "", editMode: true, formName: "", recordType: "dataPublication", downloadAndCreateOnInit: false });
+    const component = fixture.debugElement.query(By.directive(PublishDataLocationSelectorComponent))
+      .componentInstance as PublishDataLocationSelectorComponent;
+    const create = spyOn(formComponent.recordService, "create").and.resolveTo({
+      success: true, oid: "new-publication", message: "", data: null,
+    });
+    spyOn<any>(formComponent, "changeLocationHref").and.stub();
+    spyOn(fixture.debugElement.injector.get(Location), "replaceState").and.stub();
+    const failure = jasmine.createSpy("save failure");
+    const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(failure);
+
+    component.startEditNotes(0);
+    expect(component.prepareForCreate()).toBeUndefined();
+    component.editingNotesValue = "Pending note";
+    await formComponent.saveForm({ force: true });
+    expect(create).not.toHaveBeenCalled();
+    expect(failure).toHaveBeenCalledWith(jasmine.objectContaining({ error: jasmine.stringMatching(/Apply or Cancel/) }));
+    expect(component.editingNotesValue).toBe("Pending note");
+
+    component.applyEditNotes();
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledOnceWith(
+      { dataLocations: [{ ...location, notes: "Pending note" }] }, "dataPublication", "",
+    );
+    subscription.unsubscribe();
   });
 
   it("shows the metadata-only banner when locations exist but none are selected", async () => {
