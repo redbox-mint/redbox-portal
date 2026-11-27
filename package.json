@@ -26,7 +26,7 @@
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
     "moment": "2.31.0",
-    "mongodb": "7.9.0",
+    "mongodb": "7.9.1",
     "numeral": "2.0.6",
     "pino": "10.4.0",
     "rc": "1.2.8",
@@ -216,7 +216,7 @@
     },
     "sails-mongo": {
       "qs": "6.17.1",
-      "mongodb": "7.9.0"
+      "mongodb": "7.9.1"
     },
     "postcss": "8.5.23",
     "srvx": "0.11.13",
@@ -283,14 +283,14 @@
     "pino-test": "2.0.0",
     "prettier": "3.10.1",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
-    "redoc": "3.1.0",
+    "redoc": "3.2.0",
     "sass": "1.108.2",
     "sass-loader": "17.1.0",
     "serialize-javascript": "7.1.4",
     "sinon": "22.1.0",
     "supertest": "7.3.2",
     "svgo": "4.1.0",
-    "ts-json-schema-generator": "2.9.0",
+    "ts-json-schema-generator": "2.10.0",
     "typedoc": "0.28.20"
   },
   "nyc": {

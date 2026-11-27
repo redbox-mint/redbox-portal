@@ -84,7 +84,7 @@
     "glob": "14.0.4",
     "graceful-fs": "4.2.11",
     "graphql": "16.14.2",
-    "graphql-yoga": "6.0.1",
+    "graphql-yoga": "6.1.0",
     "handlebars": "4.7.10",
     "i18next": "27.1.1",
     "js-yaml": "5.5.0",
@@ -97,7 +97,7 @@
     "mime-types": "3.0.2",
     "mini-css-extract-plugin": "2.10.2",
     "moment": "2.31.0",
-    "mongodb": "7.9.0",
+    "mongodb": "7.9.1",
     "node-cache": "5.1.2",
     "node-schedule": "2.1.2",
     "nodemailer": "10.5.0",
@@ -132,7 +132,7 @@
     "mobx": "7.1.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "redoc": "3.1.0",
+    "redoc": "3.2.0",
     "react-router": "8.5.1",
     "@ai-sdk/amazon-bedrock": "5.0.58",
     "@ai-sdk/openai-compatible": "3.0.31",
@@ -147,7 +147,7 @@
     "immutable": "5.1.8",
     "sails-mongo": {
       "qs": "6.17.1",
-      "mongodb": "7.9.0"
+      "mongodb": "7.9.1"
     },
     "srvx": "0.11.13",
     "serialize-javascript": "7.1.4",
