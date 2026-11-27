@@ -1518,7 +1518,7 @@ describe('FormComponent', () => {
       await fixture.whenStable();
       formComponent.form!.markAsDirty();
     };
-    return { formComponent, fetch, select };
+    return { fixture, formComponent, fetch, select };
   };
 
   it('retains disabled creators and row proofs across selector enablement, reselection, and import', async () => {
@@ -1616,38 +1616,55 @@ describe('FormComponent', () => {
     );
   });
 
-  it('retries a failed linked-record import for the same OID before review', async () => {
-    const { formComponent, fetch, select } = await createCreatorImportForm([{ name: 'Previous creator' }]);
-    const path = '["creators"]';
-    formComponent.formDefMap!.formConfigMeta = {
-      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['previous'] },
-    };
-    let attempts = 0;
-    fetch.withArgs('new-source').and.callFake(async () => {
-      if (++attempts === 1) throw new Error('Unable to load the selected record');
-      return { contributor_ci: [{ family_name: 'New creator' }] };
-    });
-    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['incoming'] },
-    });
+  for (const recoveryOid of ['new-source', 'another-source']) {
+    it(`blocks draft and review saves during a failed import until selecting ${recoveryOid} succeeds`, async () => {
+      const { fixture, formComponent, fetch, select } = await createCreatorImportForm([{ name: 'Previous creator' }]);
+      const path = '["creators"]';
+      formComponent.formDefMap!.formConfigMeta = {
+        oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['previous'] },
+      };
+      let rejectFetch!: (error: Error) => void;
+      let startFetch!: () => void;
+      const fetching = new Promise<void>(resolve => { startFetch = resolve; });
+      fetch.withArgs('new-source').and.callFake(() => {
+        startFetch();
+        return new Promise((_resolve, reject) => { rejectFetch = reject; });
+      });
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['incoming'] },
+      });
 
-    await select('new-source');
-    expect(formComponent.form!.get(['creators', 0, 'name'])?.value).toBe('Previous creator');
-    await select('new-source');
-    await formComponent.saveForm({ targetStep: 'review' });
-    expect(update).toHaveBeenCalledOnceWith(
-      'publication', { creators: [{ name: 'New creator' }] }, 'review',
-      { formSave: true, rowEdits: { [path]: [null] } },
-    );
+      const selection = select('new-source');
+      await fetching;
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).not.toHaveBeenCalled();
 
-    formComponent.form!.get(['creators', 0, 'name'])!.setValue('Edited imported creator');
-    await select('new-source');
-    await formComponent.saveForm();
-    expect(update.calls.argsFor(1)).toEqual([
-      'publication', { creators: [{ name: 'Edited imported creator' }] }, '',
-      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'incoming' }] } },
-    ]);
-  });
+      fixture.ngZone!.run(() => rejectFetch(new Error('Unable to load the selected record')));
+      await selection;
+      await fixture.whenStable();
+      expect(formComponent.form!.get(['creators', 0, 'name'])?.value).toBe('Previous creator');
+      await formComponent.saveForm();
+      await formComponent.saveForm({ targetStep: 'review' });
+      expect(update).not.toHaveBeenCalled();
+
+      fetch.withArgs(recoveryOid).and.resolveTo({ contributor_ci: [{ family_name: 'New creator' }] });
+      await select(recoveryOid);
+      await formComponent.saveForm({ targetStep: 'review' });
+      expect(update).toHaveBeenCalledOnceWith(
+        'publication', { creators: [{ name: 'New creator' }] }, 'review',
+        { formSave: true, rowEdits: { [path]: [null] } },
+      );
+
+      formComponent.form!.get(['creators', 0, 'name'])!.setValue('Edited imported creator');
+      await select(recoveryOid);
+      await formComponent.saveForm();
+      expect(update.calls.argsFor(1)).toEqual([
+        'publication', { creators: [{ name: 'Edited imported creator' }] }, '',
+        { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'incoming' }] } },
+      ]);
+    });
+  }
 
   it('clears omitted funding bodies on review while retaining disabled funders and creators', async () => {
     const { config, assets } = creatorImportConfig([]);
@@ -2008,6 +2025,7 @@ describe('FormComponent', () => {
     const editUrl = new URL(navigate.calls.first().args[0], window.location.origin);
     expect(editUrl.searchParams.has('dataRecordOid')).toBeFalse();
     expect(createEditor.formComponent.getRequestParam('dataRecordOid')).toBeUndefined();
+    createEditor.formComponent.componentsContainer!.clear();
     createEditor.fixture.destroy();
     const appComponents = TestBed.inject(ApplicationRef).components;
     const closed = appComponents.indexOf(createEditor.fixture.componentRef);
@@ -2086,6 +2104,83 @@ describe('FormComponent', () => {
       { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, { source: 1, proof: 'incoming' }] } },
     ]);
   });
+
+  for (const initialKeywords of [['Original'], []] as string[][]) {
+    it(`omits an unconfirmed ${initialKeywords.length ? 'scalar' : 'empty'} list until the form reloads`, async () => {
+      const makeConfig = (title: string, keywords: string[]): FormConfigFrame => ({
+        name: 'publication-draft',
+        componentDefinitions: [{
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: title } },
+          component: { class: 'SimpleInputComponent' },
+        }, {
+          name: 'keywords',
+          model: { class: 'RepeatableModel', config: { value: keywords } },
+          component: { class: 'RepeatableComponent', config: {
+            allowZeroRows: true,
+            elementTemplate: {
+              name: '', component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel', config: {} },
+              layout: { class: 'RepeatableElementLayout' },
+            },
+          } },
+        }],
+      });
+      const { fixture, formComponent } = await createFormAndWaitForReady(makeConfig('Draft', initialKeywords), {
+        oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+      });
+      const path = '["keywords"]';
+      formComponent.formDefMap!.formConfigMeta = {
+        oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: initialKeywords.map(() => 'old') },
+      };
+      // The hook saved a different list, so the update confirms neither the old row nor the empty list.
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: {},
+      });
+      const errors = jasmine.createSpy('save failure');
+      const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(errors);
+      const title = formComponent.form!.get('title')!;
+      title.setValue('First edit');
+      await formComponent.saveForm({ force: true });
+      expect(update.calls.argsFor(0)).toEqual([
+        'publication', { title: 'First edit', keywords: initialKeywords }, '',
+        { formSave: true, rowEdits: { [path]: initialKeywords.map(() => ({ source: 0, proof: 'old' })) } },
+      ]);
+
+      title.setValue('Second edit');
+      await formComponent.saveForm({ force: true });
+      expect(update.calls.argsFor(1)).toEqual(['publication', { title: 'Second edit' }, '', { formSave: true }]);
+
+      if (initialKeywords.length) {
+        formComponent.form!.get(['keywords', 0])!.setValue('Edit before reloading', { emitEvent: false });
+      } else {
+        const keywords = formComponent.getComponentDefByName('keywords')!.component as RepeatableComponent;
+        await keywords.appendNewElement('Edit before reloading');
+      }
+      await formComponent.saveForm({ force: true });
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(errors).toHaveBeenCalledWith(jasmine.objectContaining({ error: jasmine.stringMatching(/Reload the form/) }));
+
+      formComponent.componentsContainer!.clear();
+      const load = formComponent.downloadAndCreateFormComponents();
+      TestBed.inject(HttpTestingController).expectOne(req => req.url.includes('/record/form/auto/publication?')).flush({
+        data: makeConfig('Second edit', ['Hook changed this']),
+        meta: { oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['from-hook'] } },
+      });
+      await load;
+      await fixture.whenStable();
+      formComponent.form!.get(['keywords', 0])!.setValue('Edit after reloading');
+      update.and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['edited'] },
+      });
+      await formComponent.saveForm({ force: true });
+      expect(update.calls.argsFor(2)).toEqual([
+        'publication', { title: 'Second edit', keywords: ['Edit after reloading'] }, '',
+        { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'from-hook' }] } },
+      ]);
+      subscription.unsubscribe();
+    });
+  }
 
   it('keeps replacement and descendant lists in the same tracking mode across saves', async () => {
     const config: FormConfigFrame = {

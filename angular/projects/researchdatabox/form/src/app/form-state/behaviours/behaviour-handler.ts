@@ -80,10 +80,11 @@ export class BehaviourHandler {
     this.validateLogicalActions('onError', this.behaviour.onError ?? []);
 
     const observable = this.getEventObservable();
+    const fetchesMetadata = this.fetchesMetadata();
+    const candidates = fetchesMetadata ? observable.pipe(filter(event => this.canHandleMetadataEvent(event))) : observable;
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const matchesBeforeDebounce = debounceMs > 0 && this.fetchesMetadata();
-    const eligibleEvents = matchesBeforeDebounce ? observable.pipe(
-      filter(event => this.canQueueMetadataLoad(event)),
+    const matchesBeforeDebounce = debounceMs > 0 && fetchesMetadata;
+    const eligibleEvents = matchesBeforeDebounce ? candidates.pipe(
       tap(() => this.pendingMetadataLoads++),
       concatMap(async event => {
         try {
@@ -100,7 +101,7 @@ export class BehaviourHandler {
         }
       }),
       filter(event => event !== null)
-    ) : observable;
+    ) : candidates;
     const source$ = debounceMs > 0 ? eligibleEvents.pipe(debounceTime(debounceMs)) : eligibleEvents;
     this.subscriptions.push(
       source$.subscribe(event => {
@@ -139,7 +140,7 @@ export class BehaviourHandler {
     return this.behaviour.processors?.some(processor => processor.type === FormBehaviourProcessorType.FetchMetadata) ?? false;
   }
 
-  private canQueueMetadataLoad(event: FormComponentEvent): boolean {
+  private canHandleMetadataEvent(event: FormComponentEvent): boolean {
     if (this.hasExecutedFormReady || (this.isProcessingFormReadyExecution && event.sourceId === '*')) return false;
     const kind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
     return kind === ExpressionsConditionKind.JSONPointer

@@ -1,14 +1,16 @@
 import { AbstractControl, FormArray, FormGroup } from '@angular/forms';
+import { isEqual } from 'lodash-es';
 import type { FormRowEdit, FormRowEdits, FormRowProofs } from '@researchdatabox/sails-ng-common';
 
 type Path = (string | number)[];
 type RowSource = { array: FormArray; index: number; proof?: string };
 type ReadOnlyRows = { renderedCount: () => number; loaded: boolean };
+type ArraySnapshot = { controls: AbstractControl[]; value: unknown };
 
 export class FormSaveRows {
   private readonly bound = new WeakSet<FormGroup>();
   private readonly origins = new WeakMap<AbstractControl, RowSource>();
-  private readonly needsReload = new WeakSet<FormArray>();
+  private readonly unconfirmed = new WeakMap<FormArray, ArraySnapshot>();
   private readonly rebuilt = new WeakSet<FormArray>();
   private readonly imported = new WeakMap<FormArray, () => boolean>();
   private readonly readOnlyRows = new WeakMap<FormArray, ReadOnlyRows>();
@@ -21,7 +23,7 @@ export class FormSaveRows {
     this.bindProofs(form, proofs);
     let control: AbstractControl | null = array;
     while (control) {
-      if (control instanceof FormArray && (this.rebuilt.has(control) || this.needsReload.has(control))) return false;
+      if (control instanceof FormArray && (this.rebuilt.has(control) || this.unconfirmed.has(control))) return false;
       const parent: FormGroup | FormArray | null = control.parent;
       if (parent instanceof FormArray && !this.hasProof(parent, control)) return false;
       control = parent;
@@ -103,7 +105,13 @@ export class FormSaveRows {
     const allowedLists = editableRowPaths && new Set(editableRowPaths);
     if (form && proofs) this.bindProofs(form, proofs);
     const rowEdits: FormRowEdits = {};
-    const arrays: { key: string; array: FormArray; rows: AbstractControl[]; imported?: () => boolean }[] = [];
+    const arrays: {
+      key: string;
+      array: FormArray;
+      rows: AbstractControl[];
+      submitted: ArraySnapshot;
+      imported?: () => boolean;
+    }[] = [];
 
     const omitted = Symbol();
     const visit = (control: AbstractControl, path: Path, fromStorage: boolean, trackBranch: boolean, root = false): unknown => {
@@ -124,17 +132,22 @@ export class FormSaveRows {
       const schemaPath = JSON.stringify(path.map(part => typeof part === 'number' ? null : part));
       if (allowedLists && !allowedLists.has(schemaPath)) return omitted;
 
-      const changedByHook = this.needsReload.has(control);
-      const unavailable = changedByHook || this.rebuilt.has(control);
+      const imported = this.imported.get(control);
+      const unconfirmed = this.unconfirmed.get(control);
+      if (unconfirmed) {
+        // A hook may have saved different rows. Omit the old display when saving other fields.
+        if (updating && (imported || unconfirmed.controls.length !== control.length ||
+          unconfirmed.controls.some((row, index) => row !== control.at(index)) ||
+          !isEqual(unconfirmed.value, control.getRawValue()))) {
+          throw new Error('Reload the form before saving changes to a repeatable list the server could not confirm.');
+        }
+        return omitted;
+      }
+
       // The server uses the ordinary merge below a list without row edits.
-      const trackArray = trackBranch && !unavailable;
+      const trackArray = trackBranch && !this.rebuilt.has(control);
       const readOnlyRows = this.readOnlyRows.has(control);
       if (readOnlyRows && (!trackArray || !fromStorage || !this.hasTrackedReadOnlyRows(control))) return omitted;
-      const structured = control.controls.some(row => row instanceof FormGroup || row instanceof FormArray);
-      if (trackBranch && updating && changedByHook && structured) {
-        throw new Error('Reload the form before saving repeatable rows whose loaded positions are unavailable.');
-      }
-      const imported = this.imported.get(control);
       const incompleteImport = () => new Error('Some imported repeatable rows cannot be saved. Reload the form and retry.');
       if (updating && imported && !imported()) throw incompleteImport();
       const edits: FormRowEdit[] = [];
@@ -163,7 +176,10 @@ export class FormSaveRows {
       if (trackArray) {
         const key = JSON.stringify(path);
         rowEdits[key] = edits;
-        arrays.push({ key, array: control, rows, imported });
+        arrays.push({
+          key, array: control, rows, imported,
+          submitted: { controls: [...control.controls], value: structuredClone(control.getRawValue()) },
+        });
       }
       return values;
     };
@@ -173,14 +189,13 @@ export class FormSaveRows {
       metadata,
       rowEdits,
       markSaved: (savedProofs?: FormRowProofs) => {
-        if (!savedProofs) return;
-        for (const { key, array, rows, imported } of arrays) {
-          const proofs = savedProofs[key];
+        for (const { key, array, rows, submitted, imported } of arrays) {
+          if (imported === this.imported.get(array)) this.imported.delete(array);
+          const proofs = savedProofs?.[key];
           if (proofs === undefined) {
-            this.needsReload.add(array);
+            this.unconfirmed.set(array, submitted);
             continue;
           }
-          if (imported === this.imported.get(array)) this.imported.delete(array);
           const readOnly = this.readOnlyRows.get(array);
           if (readOnly && !rows.length && !proofs.length) readOnly.loaded = false;
           rows.forEach((row, index) => {

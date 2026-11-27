@@ -1284,15 +1284,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
         const creating = !this.trimmedParams.oid();
-        if (creating && (this.behaviourManager.isLoadingMetadata || this.formSaveRows.hasPendingImport(this.form))) {
+        if (this.behaviourManager.isLoadingMetadata || this.formSaveRows.hasPendingImport(this.form)) {
           this.eventBus.publish(createFormSaveFailureEvent({
-            error: 'Wait for the linked record to finish loading before creating this record.',
+            error: 'Wait for the linked record to finish loading before saving.',
           }));
           return;
         }
-        if (creating && this.behaviourManager.hasPendingRecordImport) {
+        if (this.behaviourManager.hasPendingRecordImport) {
           this.eventBus.publish(createFormSaveFailureEvent({
-            error: 'Retry or change the linked record before creating this record.',
+            error: 'Retry or change the linked record before saving.',
           }));
           return;
         }
