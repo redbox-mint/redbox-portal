@@ -367,7 +367,10 @@ test.describe('Related record resolution (RR-20)', () => {
     await save.click();
     const response = await saved;
     expect(response.ok(), await response.text()).toBeTruthy();
-    const payload = response.request().postDataJSON();
+    const requestBody = response.request().postDataJSON();
+    const payload = new URL(response.url()).searchParams.get('rowEdits') === 'true'
+      ? requestBody.metadata
+      : requestBody;
     expect(payload.notes).toBe('Real local edit');
     for (const key of ['activityTitle', 'activityDates', 'activitySummaries', 'relatedMetadata']) {
       expect(payload).not.toHaveProperty(key);

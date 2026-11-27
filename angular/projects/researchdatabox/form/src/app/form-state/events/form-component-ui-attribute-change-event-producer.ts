@@ -86,9 +86,6 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
       return;
     }
 
-    this.fieldId = fieldId;
-    this.scopedBus = this.eventBus.scoped(fieldId);
-
     // Capture the initial state — no event emitted.
     this.previousSnapshot = this.snapshotUIAttributes();
 
@@ -141,22 +138,23 @@ export class FormComponentUIAttributeChangeEventProducer extends FormComponentEv
    * scoped buses.
    */
   private publishUIAttributeChanged(snapshot: UIAttributeSnapshot): void {
-    if (!this.fieldId) {
+    const fieldId = this.fieldId;
+    if (!fieldId) {
       return;
     }
 
     const baseEvent = createFieldUIAttributeChangedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       meta: { ...snapshot },
       sourceId: '*'
     });
     this.eventBus.publish(baseEvent);
 
     const scopedEvent = createFieldUIAttributeChangedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       meta: { ...snapshot },
-      sourceId: this.fieldId
+      sourceId: fieldId
     });
-    this.scopedBus?.publish(scopedEvent);
+    this.eventBus.scoped(fieldId).publish(scopedEvent);
   }
 }

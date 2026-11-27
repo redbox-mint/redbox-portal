@@ -182,6 +182,14 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
     };
   }
 
+  public prepareForCreate(): string | undefined {
+    const editedLocation = this.dataLocations[this.editingNotesIndex];
+    if (editedLocation && this.optionalString(this.editingNotesValue) !== this.optionalString(editedLocation.notes ?? "")) {
+      return "Use Apply or Cancel to finish editing the data location notes before creating the record.";
+    }
+    return undefined;
+  }
+
   public startEditNotes(index: number): void {
     const item = this.dataLocations[index];
     if (!item) {

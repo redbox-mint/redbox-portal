@@ -155,6 +155,30 @@ describe('RecordService', () => {
     await updatePromise;
   });
 
+  it('sends version preconditions with repeatable row proofs and reads save confirmation', async () => {
+    const rowEdits = { '/creators': [{ source: 1, proof: 'loaded-row' }] };
+    const metadata = { title: 'Edited record', creators: [{ name: 'Author' }] };
+    const save = recordService.update('oid-123', metadata, 'review', undefined, {
+      entityTag: entityTag(4),
+      formFingerprint: 'sha256:form_1',
+    }, { formName: 'draft', rowEdits });
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/recordmeta/oid-123'));
+
+    expect(request.request.headers.get('If-Match')).toBe(entityTag(4));
+    expect(request.request.headers.get('X-ReDBox-Form-Fingerprint')).toBe('sha256:form_1');
+    expect(request.request.params.get('targetStep')).toBe('review');
+    expect(request.request.params.get('formName')).toBe('draft');
+    expect(request.request.params.get('formSave')).toBe('true');
+    expect(request.request.params.get('rowEdits')).toBe('true');
+    expect(request.request.body).toEqual({ metadata, rowEdits });
+
+    const savedRowProofs = { '/creators': ['saved-row'] };
+    request.flush({ meta: {
+      outcome: 'saved', success: true, oid: 'oid-123', confirmedListPaths: ['/creators'], savedRowProofs,
+    } });
+    expect(await save).toEqual(jasmine.objectContaining({ savedRowProofs, confirmedListPaths: ['/creators'] }));
+  });
+
   it('keeps create precondition-free while sending its generated-form fingerprint', async () => {
     const createPromise = recordService.create({ title: 'Test record' }, 'rdmp', '', undefined, {
       formFingerprint: 'sha256:create_form',

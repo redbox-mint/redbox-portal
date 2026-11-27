@@ -20,6 +20,7 @@ declare module 'express-session' {
     redirUrl: string;
     logoutUrl: string;
     lang: string;
+    formRowProofKey?: string;
     authenticated: boolean;
     data: unknown;
     recordRouteForm?: import('./RecordRouteForm').RecordRouteForm;
