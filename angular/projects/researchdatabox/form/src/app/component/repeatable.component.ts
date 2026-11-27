@@ -539,27 +539,47 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     const array = this.model?.formControl;
     const importing = options?.replaceImportedRows === true;
     if (!importing && array && _isEqual(array.getRawValue(), nextValues)) return;
-    if (importing && (this.readOnlyRows || array?.length !== this.compDefMapEntries.length)) return;
+    if (importing && this.readOnlyRows) return;
+    if (importing && array?.length !== this.compDefMapEntries.length) {
+      throw new Error('The linked record rows could not be prepared.');
+    }
     let complete = false;
     if (array) {
       if (importing) this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length);
       else this.getFormComponent.forgetLoadedRows(array);
     }
 
-    for (const entry of [...this.compDefMapEntries].reverse()) {
-      // An imported list replaces editable rows. Keep disabled rows and their source proofs.
+    const previousRows = [...this.compDefMapEntries];
+    const remove = previousRows.filter(entry => {
       const row = entry.defEntry.model?.formControl;
-      if (importing && array && row && this.getFormComponent.isLoadedRow(array, row) &&
-        (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true))) continue;
-      this.removeElementFn(entry, options)();
+      // Keep omitted rows and their source proofs when replacing the editable rows.
+      return !(importing && array && row && this.getFormComponent.isLoadedRow(array, row) &&
+        (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true)));
+    }).reverse();
+    if (!importing) {
+      for (const entry of remove) this.removeElementFn(entry, options)();
     }
 
-    if (this.compDefMapEntries.length === 0 && nextValues.length === 0 && !this.allowZeroRows) {
-      await this.appendNewElement(undefined, false, options);
-    } else {
-      for (const value of nextValues) {
+    const needsBlankRow = previousRows.length === remove.length && !nextValues.length && !this.allowZeroRows;
+    try {
+      for (const value of needsBlankRow ? [undefined] : nextValues) {
         await this.appendNewElement(value, false, options);
       }
+      if (importing && array?.length !== this.compDefMapEntries.length) {
+        throw new Error('The linked record rows could not be applied.');
+      }
+    } catch (error) {
+      if (importing) {
+        // Only discard the new rows. The loaded rows and their identities are still present.
+        for (const entry of this.compDefMapEntries.slice(previousRows.length).reverse()) {
+          this.removeElementFn(entry, options)();
+        }
+        complete = true;
+      }
+      throw error;
+    }
+    if (importing) {
+      for (const entry of remove) this.removeElementFn(entry, options)();
     }
     complete = true;
   }
@@ -652,13 +672,13 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     this.rebuildLineagePaths(options);
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
+    elemEntry.wrapperRef = wrapperRef;
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
     const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
-      elemEntry.wrapperRef = wrapperRef;
       return wrapperRef;
     }
     layoutInstance.parentDisabled = () => this.rowsDisabled;
@@ -678,7 +698,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         `${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`
       );
     }
-    elemEntry.wrapperRef = wrapperRef;
     return wrapperRef;
   }
 
@@ -711,8 +730,11 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         return;
       }
       that.compDefMapEntries.splice(defIdx, 1);
+      const row = elemEntry.defEntry.model?.formControl;
       elemEntry.wrapperRef?.destroy();
-      that.model?.removeElement(elemEntry.defEntry?.model, options);
+      if (!options?.replaceImportedRows || (row && that.model?.formControl?.controls.includes(row))) {
+        that.model?.removeElement(elemEntry.defEntry.model, options);
+      }
       if (that.shouldEmitComponentEvents(options)) {
         that.requestFormDirty('repeatable.element.removed');
       }

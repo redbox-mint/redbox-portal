@@ -4,6 +4,7 @@ import {
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
+  recordImportApplications,
 } from './form-component-event.types';
 import {
   FormComponentEventBaseProducerConsumer,
@@ -349,13 +350,15 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
     this.setupQuerySourceUpdateListener();
 
+    const applyExpressions = async (event: FormComponentEvent) => {
+      const matched = await this.getMatchedExpressions(event, expressions);
+      for (const expression of matched ?? []) await this.consumeEvent(event, expression);
+    };
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-      const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
-      if (hasConditionMatches) {
-        for (const expr of hasConditionMatches) {
-          await this.consumeEvent(event, expr);
-        }
-      }
+      const application = applyExpressions(event);
+      const imports = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? event[recordImportApplications] : undefined;
+      if (imports) imports.push(application);
+      else await application;
     });
     this.subscriptions.set(eventType, sub);
   }

@@ -10,6 +10,8 @@ import { FormArray } from '@angular/forms';
 import { isPlainObject } from 'lodash-es';
 import { isCustomSetValueControl } from '../custom-set-value.control';
 
+const failedImport = Symbol('failedImport');
+
 /**
  * Consumes `valueChange` events from the `FormComponentEventBus` and updates the component's form control.
  *
@@ -38,13 +40,14 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
     if (expression.config.hasTemplate) {
       // Evaluate the pre-compiled JSONata expression template (CSP-safe)
       targetValue = importsRows
-        ? await this.evaluateExpressionJSONata(expression, event, 'template', {}, null)
+        ? await this.evaluateExpressionJSONata(expression, event, 'template', {}, failedImport)
         : await this.evaluateExpressionJSONata(expression, event, 'template');
     }
     if (importsRows) {
-      // JSONata may return a lone object for a single row and undefined when there is no result.
+      // A successful expression with no data leaves the current rows intact.
+      if (targetValue === undefined || targetValue === null) return;
       if (isPlainObject(targetValue)) targetValue = [targetValue];
-      if (!Array.isArray(targetValue)) return;
+      if (!Array.isArray(targetValue)) throw new Error('Could not evaluate the linked record import.');
       await this.setTarget(targetValue, target, event, expression, { emitEvent: false, replaceImportedRows: true });
       return;
     }

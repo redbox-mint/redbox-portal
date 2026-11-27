@@ -52,7 +52,7 @@ export class BehaviourHandler {
   private isProcessingFormReadyExecution = false;
   private pendingMetadataLoads = 0;
   private queuedMetadataLoad = false;
-  private pendingSelectionOid?: string;
+  private pendingSelection?: { oid: string; fieldId?: string };
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -90,7 +90,7 @@ export class BehaviourHandler {
         // A reselection can replace the original event before the fetch has started.
         if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED) {
           const oid = selectedRecordOid(event.value);
-          if (oid && oid !== selectedRecordOid(event.previousValue)) this.pendingSelectionOid = oid;
+          if (oid && oid !== selectedRecordOid(event.previousValue)) this.rememberSelection(oid, event.fieldId);
         }
       }),
       debounceTime(debounceMs)
@@ -138,6 +138,13 @@ export class BehaviourHandler {
     return kind === ExpressionsConditionKind.JSONPointer
       ? matchJSONPointerCondition(this.behaviour.condition, event, this.behaviour, this.getEventQuerySource(event))
       : canMatchJSONataEvent(event, this.behaviour);
+  }
+
+  private rememberSelection(oid: string, fieldId?: string) {
+    if (this.pendingSelection?.oid !== oid || this.pendingSelection.fieldId !== fieldId) {
+      this.pendingSelection = { oid, fieldId };
+    }
+    return this.pendingSelection;
   }
 
   /**
@@ -193,12 +200,17 @@ export class BehaviourHandler {
       let value = (event as { value?: unknown }).value;
       const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
       const previousOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.previousValue) : '';
+      if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED && !selectedOid &&
+          this.pendingSelection?.fieldId === event.fieldId) {
+        this.pendingSelection = undefined;
+      }
       let recordImport: FieldValueChangedEvent['recordImport'];
+      let selection: typeof this.pendingSelection;
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
         const fetchesSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
           typeof value === 'string' && !!selectedOid && value.trim() === selectedOid;
-        const changesSelection = fetchesSelection && (selectedOid !== previousOid || selectedOid === this.pendingSelectionOid);
-        if (changesSelection) this.pendingSelectionOid = selectedOid;
+        const changesSelection = fetchesSelection && (selectedOid !== previousOid || selectedOid === this.pendingSelection?.oid);
+        if (changesSelection) selection = this.rememberSelection(selectedOid, event.fieldId);
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -212,9 +224,10 @@ export class BehaviourHandler {
           : undefined;
       }
 
+      if (selection && selection !== this.pendingSelection) return;
       await this.executeActions('actions', this.behaviour.actions ?? [], value, event, recordImport);
-      if (recordImport === 'changed-selection' && this.pendingSelectionOid === selectedOid) {
-        this.pendingSelectionOid = undefined;
+      if (selection && selection === this.pendingSelection) {
+        this.pendingSelection = undefined;
       }
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
@@ -238,6 +251,10 @@ export class BehaviourHandler {
 
   get isLoadingMetadata(): boolean {
     return this.queuedMetadataLoad || this.pendingMetadataLoads > 0;
+  }
+
+  get hasPendingRecordImport(): boolean {
+    return this.pendingSelection !== undefined;
   }
 
   /**

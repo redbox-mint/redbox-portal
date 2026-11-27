@@ -1,7 +1,7 @@
 import { FieldPathKind, FormBehaviourActionConfig, FormBehaviourActionType } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, FieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FieldValueChangedEvent, recordImportApplications } from '../events/form-component-event.types';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
 import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviour-field-resolver';
@@ -88,14 +88,21 @@ async function executeEmitEventAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   const value = await resolveActionValue(action, pipelineContext, ctx);
+  const recordImport = action.config.hasValueTemplate ? undefined : ctx.recordImport;
+  const applications: Promise<void>[] = [];
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
-      ...(ctx.recordImport && !action.config.hasValueTemplate ? { recordImport: ctx.recordImport } : {}),
+      ...(recordImport ? { recordImport } : {}),
+      ...(recordImport === 'changed-selection' ? { [recordImportApplications]: applications } : {}),
     })
   );
+  // The event bus delivers synchronously, and expression consumers register before awaiting anything.
+  const results = await Promise.allSettled(applications);
+  const failure = results.find(result => result.status === 'rejected');
+  if (failure) throw failure.reason;
 }
 
 /**

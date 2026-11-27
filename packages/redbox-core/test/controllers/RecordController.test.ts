@@ -1038,6 +1038,37 @@ describe('RecordController update', () => {
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([{ ...contributor, optionalNote: null }]);
   });
 
+  it('saves fields enabled through component.disabled while preserving independently disabled fields', async () => {
+    const dynamicField = {
+      ...input('conditional'),
+      model: { class: 'SimpleInputModel' as const, config: { disabled: true } },
+      component: { class: 'SimpleInputComponent' as const, config: { disabled: true } },
+      expressions: [{ name: 'enable', config: { target: 'component.disabled' as const, template: 'false' } }],
+    };
+    const lookup = FormsService.getFormByName as sinon.SinonStub;
+    lookup.returns(of({
+      id: 'form-dynamic', name: formConfig.name, branding: 'brand-1',
+      configuration: {
+        ...formConfig, componentDefinitions: [
+          dynamicField,
+          { ...dynamicField, name: 'lockedLayout', layout: { class: 'DefaultLayout', config: { disabled: true } } },
+          { ...dynamicField, name: 'lockedComponent', expressions: [{
+            name: 'enable-model-only', config: { target: 'model.disabled', template: 'false' },
+          }] },
+        ],
+      },
+    }));
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      ...currentRecord, metadata: { conditional: 'Before', lockedLayout: 'Keep layout', lockedComponent: 'Keep component' },
+    });
+    await controller.update(makeRequest({
+      conditional: 'Edited', lockedLayout: 'Ignore', lockedComponent: 'Ignore',
+    }, { formSave: 'true' }), makeResponse().res);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({
+      conditional: 'Edited', lockedLayout: 'Keep layout', lockedComponent: 'Keep component',
+    });
+  });
+
   it('rejects a repeatable edit when an omitted child cannot be assigned to a submitted row', async () => {
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       ...currentRecord, metadata: { ...currentRecord.metadata, contributors: [{ name: 'Alpha', conditional: 'Stored' }] },

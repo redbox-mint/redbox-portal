@@ -21,6 +21,7 @@ import {
   effect,
   ElementRef,
   HostBinding,
+  HostListener,
   Inject,
   inject,
   model,
@@ -1287,6 +1288,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }));
           return;
         }
+        if (creating && this.behaviourManager.hasPendingRecordImport) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: 'Retry or change the linked record before creating this record.',
+          }));
+          return;
+        }
         const pendingInput = creating ? this.prepareFieldsForCreate(this.componentDefArr) : undefined;
         if (pendingInput) {
           this.eventBus.publish(createFormSaveFailureEvent({ error: pendingInput }));
@@ -1517,6 +1524,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   protected canNavigateBack(): boolean {
     const browser = this.window as (Window & { navigation?: { canGoBack: boolean } }) | null;
     return browser?.navigation?.canGoBack ?? ((browser?.history.length ?? 0) > 1);
+  }
+
+  @HostListener('window:pageshow', ['$event'])
+  protected restoreCreatedRecord(event: PageTransitionEvent): void {
+    const oid = this.trimmedParams.oid();
+    if (event.persisted && this.creatingRecord() && oid) {
+      this.finishCreateNavigation(this.buildEditRecordPath(oid));
+    }
   }
 
   private finishCreateNavigation(path: string, closeOnSave = false): void {

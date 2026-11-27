@@ -39,6 +39,9 @@ export interface RedirectLocationEventBase {
   readonly redirectDelaySeconds?: number;
 }
 
+// Symbol keys keep the completion promises out of the cloned JSONata event context.
+export const recordImportApplications = Symbol('recordImportApplications');
+
 /**
  * Field value changed event
  * Published when a field's value changes
@@ -48,6 +51,7 @@ export interface FieldValueChangedEvent extends FieldScopedEventBase {
   readonly value: any;
   readonly previousValue?: any;
   readonly recordImport?: 'changed-selection' | 'same-selection';
+  readonly [recordImportApplications]?: Promise<void>[];
 }
 
 /**

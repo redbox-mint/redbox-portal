@@ -57,6 +57,10 @@ export class FormBehaviourManager implements OnDestroy {
     return this.handlers.some(handler => handler.isLoadingMetadata);
   }
 
+  get hasPendingRecordImport(): boolean {
+    return this.handlers.some(handler => handler.hasPendingRecordImport);
+  }
+
   /**
    * Release all active behaviour handlers.
    */
