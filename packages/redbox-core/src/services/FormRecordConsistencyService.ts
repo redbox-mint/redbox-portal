@@ -543,13 +543,22 @@ export namespace Services {
                     return;
                 }
 
-                const nestedArrays = ['componentDefinitions', 'tabs', 'panels', 'headerActions'];
+                const nestedArrays = ['componentDefinitions', 'tabs', 'panels', 'headerActions', 'detailFields'];
                 nestedArrays.forEach(key => {
                     const nested = componentConfig[key];
                     if (Array.isArray(nested)) {
                         nested.forEach(item => stripComponent(item as Record<string, unknown>));
                     }
                 });
+
+                const detailFieldsByValue = componentConfig.detailFieldsByValue;
+                if (_.isPlainObject(detailFieldsByValue)) {
+                    for (const fields of Object.values(detailFieldsByValue as Record<string, unknown>)) {
+                        if (Array.isArray(fields)) {
+                            fields.forEach(field => stripComponent(field as Record<string, unknown>));
+                        }
+                    }
+                }
 
                 const elementTemplate = componentConfig.elementTemplate;
                 if (_.isPlainObject(elementTemplate)) {

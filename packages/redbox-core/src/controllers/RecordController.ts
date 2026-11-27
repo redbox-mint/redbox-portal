@@ -1828,7 +1828,11 @@ export namespace Controllers {
       const reusableFormDefs = sails.config.reusableFormDefinitions;
       const contextVariables = ContextVariableUtils.evaluateContextVariables(req, record);
       const clientFormConfig = await FormsService.buildClientFormConfig(
-        form.configuration, 'edit', userRoles, record.metadata, reusableFormDefs, brand.name, contextVariables
+        form.configuration, 'edit', userRoles, record.metadata, reusableFormDefs, brand.name, contextVariables,
+        { user: req.user as UserModel, brand, record, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) },
+        false,
+        true,
+        { hydrateVocabulary: false }
       );
       const original = { redboxOid: record.redboxOid, metadata: record.metadata };
       const merged = await FormRecordConsistencyService.mergeRecordClientFormConfig(

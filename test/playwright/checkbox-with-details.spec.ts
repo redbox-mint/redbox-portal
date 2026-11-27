@@ -150,7 +150,7 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await saveDraft();
   const removedResponse = await removed;
   expect(removedResponse.ok()).toBeTruthy();
-  expect((await removedResponse.json()).data.metadata.digitalFormatEstimates).toEqual([
+  expect(await persistedFormats(oid)).toEqual([
     { value: 'other', details: { volume: '3 TB', description: 'Instrument export bundles' } },
   ]);
   await page.reload();
@@ -160,6 +160,20 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await expect(description).toHaveValue('Instrument export bundles');
   expect(browserErrors).toEqual([]);
 });
+
+async function persistedFormats(oid: string): Promise<unknown> {
+  // Form-save responses omit raw metadata. Check the database for legacy
+  // details, including fields deliberately hidden from the form.
+  const mongo = await new MongoClient(process.env.CHECKBOX_DETAILS_MONGO_URL ?? 'mongodb://mongodb:27017', {
+    serverSelectionTimeoutMS: 5000,
+  }).connect();
+  try {
+    const record = await mongo.db('redbox-storage').collection('record').findOne({ redboxOid: oid });
+    return record?.metadata?.digitalFormatEstimates;
+  } finally {
+    await mongo.close();
+  }
+}
 
 const demoType = 'checkbox-details-demo';
 const openFormats = (page: Page) => page.getByRole('tab', { name: 'Formats' }).click();
@@ -227,7 +241,7 @@ test('initializes a newly selected row after reopening a saved record', async ({
   await expect(description).toHaveValue('Custom exports');
   const active = await save(page, 'Activate', 'PUT', draft.redboxOid, { waitForReload: true });
   expect(active.workflow.stage).toBe('active');
-  expect(active.metadata.digitalFormatEstimates).toEqual([
+  expect(await persistedFormats(draft.redboxOid)).toEqual([
     { value: 'tabulated', details: { volume: '250 CSV files' } },
     { value: 'other', details: { volume: '10 GB', description: 'Custom exports' } },
   ]);
@@ -330,7 +344,7 @@ test('saves removals during a pending and failed lookup and validates retained r
     await waitForSaveThrottle();
     const pendingDraft = await save(page, 'Save draft', 'PUT', oid);
     expect(pendingDraft.workflow.stage).toBe('draft');
-    expect(pendingDraft.metadata.digitalFormatEstimates).toEqual([...incomplete, otherRow]);
+    expect(await persistedFormats(oid)).toEqual([...incomplete, otherRow]);
   } finally {
     failLookup();
   }
@@ -345,8 +359,8 @@ test('saves removals during a pending and failed lookup and validates retained r
   await expect(invalid).toBeVisible();
   expect(activationRequests).toBe(0);
   await waitForSaveThrottle();
-  const failedDraft = await save(page, 'Save draft', 'PUT', oid);
-  expect(failedDraft.metadata.digitalFormatEstimates).toEqual(incomplete);
+  await save(page, 'Save draft', 'PUT', oid);
+  expect(await persistedFormats(oid)).toEqual(incomplete);
   await waitForSaveThrottle();
 
   await formats.getByRole('button', { name: 'Try again' }).click();
@@ -368,7 +382,7 @@ test('saves removals during a pending and failed lookup and validates retained r
   const active = await save(page, 'Activate', 'PUT', oid, { waitForReload: true });
   expect(activationRequests).toBe(1);
   expect(active.workflow.stage).toBe('active');
-  expect(active.metadata.digitalFormatEstimates).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
+  expect(await persistedFormats(oid)).toEqual([{ value: 'tabulated', details: { volume: '3 TB' } }]);
   await page.goto(`${prefix}/record/edit/${oid}`);
   await openFormats(page);
   await expect(formats.getByRole('checkbox', { name: 'Tabulated files' })).toBeChecked();
@@ -423,8 +437,8 @@ test('shows obsolete answers for current and historical choices and saves remova
   await historical.screenshot({ path: testInfo.outputPath('historical-details.png') });
   await page.getByRole('tab', { name: 'Project' }).click();
   await title.fill('Synthetic archived details (updated)');
-  const updated = await save(page, 'Save draft', 'PUT', oid);
-  expect(updated.metadata.digitalFormatEstimates).toEqual([current, retired]);
+  await save(page, 'Save draft', 'PUT', oid);
+  expect(await persistedFormats(oid)).toEqual([current, retired]);
   await openFormats(page);
   await expect(removed.and(page.locator(':enabled'))).toHaveCount(0);
   await page.reload();
