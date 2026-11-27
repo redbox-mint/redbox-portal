@@ -427,6 +427,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private window: Window & typeof globalThis | null;
   private allowConflictNavigationOnce = false;
+  private hasUnconfirmedSaveEdits = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
 
@@ -626,6 +627,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.saveNavigationPending.set(false);
     this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
+    this.hasUnconfirmedSaveEdits = false;
     this.conflictExportCompleted = false;
   }
 
@@ -1664,6 +1666,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
+          this.hasUnconfirmedSaveEdits = this.hasChangesToSave();
           this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
@@ -1728,6 +1731,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               if (response.concurrency) {
                 response.concurrency = { ...response.concurrency, resolution: 'already-current' };
               }
+              this.hasUnconfirmedSaveEdits = false;
               this.saveResponse.set(response);
               const adoptedValue = this.getPersistedFormValue();
               this.eventBus.publish(
@@ -1788,6 +1792,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           // open only when required save work remains incomplete.
           const isComplete = response.isComplete();
           if (response.wasPersisted()) {
+            this.hasUnconfirmedSaveEdits = false;
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
@@ -1982,6 +1987,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             formScopeId: this.eventScopeId,
             requestId: failure.requestId,
           }));
+        } finally {
+          // A completion listener can start a new save before this one returns.
+          if (ownsSave() && this.saveResponse() !== null) this.hasUnconfirmedSaveEdits = false;
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -2626,14 +2634,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
   }
 
-  /** Native navigation warning for unresolved memory-only conflict work. */
+  /** Native navigation warning for unsaved edits and unresolved conflict work. */
   @HostListener('window:beforeunload', ['$event'])
   public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
     if (this.allowConflictNavigationOnce) {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (!this.formConflictState()) {
+    if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
       return undefined;
     }
     const warning = this.conflictNavigationWarning();

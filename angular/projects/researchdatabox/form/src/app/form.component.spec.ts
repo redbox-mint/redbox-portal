@@ -1514,6 +1514,131 @@ describe('FormComponent', () => {
     expect(steps).toEqual(['export', 'reload']);
   });
 
+  function expectNavigationWarning(formComponent: FormComponent, warns: boolean): void {
+    // Karma treats a beforeunload event on its own window as a page reload.
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBe(warns);
+  }
+
+  it('warns after a user edit and allows navigation once the edit is saved', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="text"]')!;
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+      oid: 'oid-123',
+      metadata: { title: 'Saved title', notes: 'Loaded notes' },
+    }));
+    expectNavigationWarning(formComponent, false);
+
+    input.value = 'Unsaved title';
+    input.dispatchEvent(new Event('input'));
+    expectNavigationWarning(formComponent, true);
+
+    await formComponent.saveForm();
+
+    expect(update.calls.mostRecent().args[1]).toEqual({ title: 'Unsaved title', notes: 'Loaded notes' });
+    expect(input.value).toBe('Saved title');
+    expect(formComponent.form?.pristine).toBeTrue();
+    expectNavigationWarning(formComponent, false);
+  });
+
+  it('preserves early edits while a compiled expression initializes the form', fakeAsync(async () => {
+    let finishEvaluation!: () => void;
+    const initialEvaluation = new Promise<void>(resolve => { finishEvaluation = resolve; });
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'pending-initialization',
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'description',
+          model: { class: 'SimpleInputModel' },
+          component: { class: 'SimpleInputComponent' },
+          expressions: [{
+            name: 'copy-title',
+            config: {
+              conditionKind: 'jsonpointer',
+              condition: '/title::field.value.changed',
+              target: 'model.value',
+              template: 'event.value',
+              hasTemplate: true,
+            },
+          }],
+        },
+      ],
+    }, { editMode: true }, undefined, {
+      entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp',
+        callable: async (_keyString, _key, context: { event: { value: unknown } }) => {
+          await initialEvaluation;
+          return context.event.value;
+        },
+      }],
+    });
+    const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="text"]')!;
+    const description = formComponent.form!.get('description')!;
+    expectNavigationWarning(formComponent, false);
+
+    input.value = 'Early edit';
+    input.dispatchEvent(new Event('input'));
+    finishEvaluation();
+    flushMicrotasks();
+
+    expect(formComponent.form?.get('title')?.value).toBe('Early edit');
+    expect(description.value).toBe('Early edit');
+    expect(description.pristine).toBeTrue();
+    expectNavigationWarning(formComponent, true);
+  }));
+
+  it('warns while an ordinary save is in flight and after it fails', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Unsaved title');
+    title.markAsDirty();
+    let finishSave!: (response: RecordActionResult) => void;
+    spyOn(formComponent.recordService, 'update').and.returnValue(
+      new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
+    );
+
+    const saving = formComponent.saveForm();
+    expect(formComponent.form?.pristine).toBeTrue();
+    expectNavigationWarning(formComponent, true);
+    finishSave(retryFailureResponse('unknown'));
+    await saving;
+
+    expectNavigationWarning(formComponent, true);
+  });
+
+  for (const navigation of ['redirect', 'workflow reload'] as const) {
+    it(`allows a successful save to trigger a ${navigation} without an unload warning`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      const title = formComponent.form!.get('title')!;
+      title.setValue('Saved title');
+      title.markAsDirty();
+      const nextFingerprint = navigation === 'workflow reload' ? 'sha256:destination_form' : 'sha256:form_1';
+      spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse({
+        oid: 'oid-123',
+        concurrency: { revision: 5, formFingerprint: nextFingerprint },
+      }));
+      const reload = spyOn(formComponent as unknown as { reloadWindow(): void }, 'reloadWindow')
+        .and.callFake(() => expectNavigationWarning(formComponent, false));
+      const redirect = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref')
+        .and.callFake(() => expectNavigationWarning(formComponent, false));
+
+      expectNavigationWarning(formComponent, true);
+      await formComponent.saveForm(navigation === 'workflow reload'
+        ? { targetStep: 'active' }
+        : { closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 0 });
+      tick(0);
+
+      expect(reload).toHaveBeenCalledTimes(navigation === 'workflow reload' ? 1 : 0);
+      expect(redirect).toHaveBeenCalledTimes(navigation === 'redirect' ? 1 : 0);
+    }));
+  }
+
   it('warns before navigation for unresolved memory-only work and bypasses only the explicit exported reload', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Unsaved title');
@@ -3337,6 +3462,7 @@ describe('FormComponent', () => {
       await savePromise;
 
       expect(control.value).toBe('edited during save');
+      expectNavigationWarning(formComponent, true);
       expect(control.dirty).toBeTrue();
       expect(events.length).toBe(1);
       expect(events[0].modelSnapshot).toEqual({text_never_sync: 'edited during save'});
