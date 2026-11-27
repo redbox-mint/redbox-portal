@@ -60,7 +60,7 @@ describe('RecordSelectorComponent', () => {
     expect(fixture.componentInstance).toBeDefined();
   });
 
-  it('loads records and stores the selected record payload', async () => {
+  it('marks a manual record selection dirty for the navigation warning', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',
       componentDefinitions: [
@@ -83,7 +83,7 @@ describe('RecordSelectorComponent', () => {
       ],
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const compiled = fixture.nativeElement as HTMLElement;
     const input = compiled.querySelector('input') as HTMLInputElement;
     input.value = 'beta';
@@ -92,10 +92,16 @@ describe('RecordSelectorComponent', () => {
     const buttons = compiled.querySelectorAll('.rb-record-selector-option') as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(1);
 
+    expect(formComponent.form?.pristine).toBeTrue();
     buttons[0].click();
     await fixture.whenStable();
 
-    expect((formComponent as any).form.value.related_record).toEqual({ oid: 'rec-2', title: 'Beta record' });
+    const control = formComponent.form!.get('related_record')!;
+    expect(control.value).toEqual({ oid: 'rec-2', title: 'Beta record' });
+    expect(control.dirty).toBeTrue();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeTrue();
   });
 
   it('collapses to the selected record with a change button after selection', async () => {

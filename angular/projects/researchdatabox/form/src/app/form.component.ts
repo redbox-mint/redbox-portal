@@ -428,6 +428,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private window: Window & typeof globalThis | null;
   private allowConflictNavigationOnce = false;
   private hasUnconfirmedSaveEdits = false;
+  private recordDeleted = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
 
@@ -628,6 +629,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
     this.hasUnconfirmedSaveEdits = false;
+    this.recordDeleted = false;
     this.conflictExportCompleted = false;
   }
 
@@ -1666,7 +1668,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
-          this.hasUnconfirmedSaveEdits = this.hasChangesToSave();
+          this.hasUnconfirmedSaveEdits ||= this.hasChangesToSave();
           this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
@@ -1822,6 +1824,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 (savedStage && renderedStage && savedStage !== renderedStage)
               );
             const hasNewEdits = () => {
+              if (this.hasChangesToSave()) return true;
               const latestValue = this.getPersistedFormValue();
               // A control can add an undefined property that the JSON save omits.
               return !_isEqual(currentFormValue, latestValue) && !_isEqual(
@@ -1838,8 +1841,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             if (closing) {
               this.canCompleteSaveRedirect = () => {
                 if (!ownsSave() || !this.saveNavigationPending()) return false;
-                if (!formChanged || !hasNewEdits()) return true;
-                requireReload();
+                if (formChanged) {
+                  if (!hasNewEdits()) return true;
+                  requireReload();
+                  return false;
+                }
+                if (!this.hasChangesToSave()) return true;
+                // Keep later edits in the editor and let the user save them.
+                this.saveNavigationPending.set(false);
+                this.canCompleteSaveRedirect = undefined;
                 return false;
               };
             }
@@ -1987,9 +1997,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             formScopeId: this.eventScopeId,
             requestId: failure.requestId,
           }));
-        } finally {
-          // A completion listener can start a new save before this one returns.
-          if (ownsSave() && this.saveResponse() !== null) this.hasUnconfirmedSaveEdits = false;
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -2641,7 +2648,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
+    if (this.recordDeleted || (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave())) {
       return undefined;
     }
     const warning = this.conflictNavigationWarning();
@@ -2747,6 +2754,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDefMap.updateConcurrency(next);
     this.clearServerSaveProblems();
     if (resolution === 'discard') {
+      this.hasUnconfirmedSaveEdits = false;
       this.localDirtyRequestControls = new WeakSet<AbstractControl>();
       this.form.markAsPristine();
     }
@@ -2814,6 +2822,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         issueIndex++;
       }
     }
+    // The submitted controls are pristine. Keep a retry available even
+    // when the only dirty child is a related display control.
+    if (this.hasUnconfirmedSaveEdits) this.localDirtyRequestControls.add(this.form);
     this.form.markAsDirty();
     if (Object.keys(formLevelErrors).length > 0) {
       this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
@@ -3045,6 +3056,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           })
         );
       } else {
+        this.recordDeleted = true;
         this.formConflictState.set(null);
         this.eventBus.publish(
           createFormDeleteSuccessEvent({

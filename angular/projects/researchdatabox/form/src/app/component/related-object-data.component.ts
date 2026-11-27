@@ -3,7 +3,7 @@ import { Subscription, take } from 'rxjs';
 import { RecordService } from '@researchdatabox/portal-ng-common';
 import { RelatedMetadataEntry, RelatedSourceDescriptor } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
-import { createFieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
+import { createFieldValueChangedEvent, FormComponentEventType, isFormInitializationEvent } from '../form-state/events/form-component-event.types';
 import { publishControlValueNotification, ValueNotificationCause } from '../form-state/control-value-notifications';
 import { RelatedRecordRequests, readRelatedReference, relatedReferenceIdentity } from '../form-state/related-records/related-record-request';
 import { Component, inject } from '@angular/core';
@@ -53,7 +53,9 @@ export class RelatedObjectDataComponent extends ContentComponent {
         publishControlValueNotification(this.formComponent.form, cause => { void this.refreshRelatedData(false, false, cause); });
       }));
       this.relatedSubscriptions.add(this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
-        if (event.sourceId !== pointer) void this.refreshRelatedData(false, false, event);
+        if (event.sourceId !== pointer) {
+          void this.refreshRelatedData(false, false, { ...event, initializing: isFormInitializationEvent(event) });
+        }
       }));
       this.relatedSubscriptions.add(this.eventBus.select$(FormComponentEventType.FIELD_DEPENDENCY_TRIGGER).subscribe(event => {
         if (event.dependentFields.includes(pointer!)) void this.refreshRelatedData(true);
@@ -82,6 +84,7 @@ export class RelatedObjectDataComponent extends ContentComponent {
       const request = this.requests.candidate();
       // Snapshot the cause for this generation, across loading, fetch and rendering.
       const cause: ValueNotificationCause = {
+        ...(initial || origin.initializing ? { initializing: true } : {}),
         ...(origin.behaviourChain ? { behaviourChain: [...origin.behaviourChain] } : {}),
         expressionChain: [...(origin.expressionChain ?? []), `${RelatedObjectDataComponentName}:${descriptor.componentPointer}`],
       };

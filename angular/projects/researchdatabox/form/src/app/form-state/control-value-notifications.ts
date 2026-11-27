@@ -3,7 +3,7 @@ import type { FormComponentEventBase } from './events/form-component-event.types
 import type { ControlSetValueOptions } from './custom-set-value.control';
 
 /** Handlers that caused a value notification, used to stop feedback loops. */
-export type ValueNotificationCause = Pick<FormComponentEventBase, 'behaviourChain' | 'expressionChain' | 'isCurrent'>;
+export type ValueNotificationCause = Pick<FormComponentEventBase, 'behaviourChain' | 'expressionChain' | 'initializing' | 'isCurrent'>;
 
 type ExpressionWrite = { writers: number; refreshed: boolean; value?: unknown };
 const expressionWrites = new WeakMap<AbstractControl, ExpressionWrite>();

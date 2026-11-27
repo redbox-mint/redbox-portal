@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { LoggerService, RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormServerSyncService } from '../../form-server-sync.service';
 import { signal } from '@angular/core';
 import { rebaseRecordValues, retainRelatedDisplayValues } from '@researchdatabox/sails-ng-common';
@@ -162,6 +162,42 @@ describe('related display unrelated-local-edit runtime scenario', () => {
     await formComponent.saveForm();
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.calls.mostRecent().args[1]).toEqual({ reference: 'a', notes: 'loaded' });
+  });
+
+  it('protects submitted notes after a form-level failure when the only dirty child is an active display', async () => {
+    const { formComponent } = await dirtyRequestForm();
+    const notes = formComponent.form!.get('notes')!;
+    const display = formComponent.form!.get('title')!;
+    notes.setValue('Local edit');
+    notes.markAsDirty();
+    let finishSave!: (result: RecordActionResult) => void;
+    const update = spyOn(formComponent.recordService, 'update').and.returnValue(
+      new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
+    );
+    const saving = formComponent.saveForm();
+    expect(notes.pristine).toBeTrue();
+
+    display.setValue('Refreshed related title');
+    display.markAsDirty();
+    expect(formComponent.hasChangesToSave()).toBeFalse();
+    finishSave(RecordActionResult.fromResponse({ meta: {
+      outcome: 'not-saved',
+      problems: [{ kind: 'system', phase: 'pre-save', issues: [{ code: 'failed', message: 'Save failed.' }] }],
+    } }, 500));
+    await saving;
+
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeTrue();
+    expect(formComponent.hasChangesToSave()).toBeTrue();
+
+    update.and.resolveTo(RecordActionResult.fromResponse({ meta: { oid: 'dirty-root', outcome: 'saved' } }));
+    await formComponent.saveForm();
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.calls.mostRecent().args[1]).toEqual({ reference: 'a', notes: 'Local edit' });
+    const afterRetry = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(afterRetry);
+    expect(afterRetry.defaultPrevented).toBeFalse();
   });
 
   it('saves only the local answer after source refresh and adopts a projected saved baseline', async () => {

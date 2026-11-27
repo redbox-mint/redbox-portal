@@ -5,6 +5,7 @@ import {
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
+  isFormInitializationEvent,
 } from './form-component-event.types';
 import {
   FormComponentEventBaseProducerConsumer,
@@ -536,6 +537,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
         eventFieldId: event.fieldId,
         cause: {
+          ...(isFormInitializationEvent(event) ? { initializing: true } : {}),
           ...(event.isCurrent ? { isCurrent: isActive } : {}),
           ...(event.behaviourChain ? { behaviourChain: event.behaviourChain } : {}),
           expressionChain: [...(event.expressionChain ?? []), this.getExpressionChainId(expression)],

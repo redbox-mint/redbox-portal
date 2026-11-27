@@ -34,6 +34,7 @@ export interface BehaviourActionExecutionContext {
   behaviourChain: readonly number[];
   /** Expressions that caused the triggering event, carried into this behaviour's writes. */
   expressionChain?: readonly string[];
+  initializing?: boolean;
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
@@ -128,7 +129,7 @@ async function executeSetValueEntry(
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
-  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+  if (!ctx.initializing && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
     resolved.control.markAsDirty();
   }
   ctx.broadcastFormStatus?.();
@@ -174,6 +175,7 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
+      ...(ctx.initializing ? { initializing: true } : {}),
       ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
@@ -286,7 +288,7 @@ async function applyRunTemplateInstructions(
 
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
-    if (target === FormExpressionsTargetModelValue) {
+    if (target === FormExpressionsTargetModelValue && !ctx.initializing) {
       const control = host.model?.formControl;
       if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
     }
@@ -412,6 +414,7 @@ function buildTargetContext(
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
     cause: {
       behaviourChain: ctx.behaviourChain,
+      ...(ctx.initializing ? { initializing: true } : {}),
       ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     },

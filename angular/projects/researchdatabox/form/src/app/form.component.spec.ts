@@ -1612,6 +1612,69 @@ describe('FormComponent', () => {
     expectNavigationWarning(formComponent, true);
   });
 
+  for (const editTiming of ['during transport', 'during the redirect delay'] as const) {
+    it(`keeps Save & Close retryable when a new edit is made ${editTiming}`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      const title = formComponent.form!.get('title')!;
+      const notes = formComponent.form!.get('notes')!;
+      title.setValue('Saved title');
+      title.markAsDirty();
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+      const response = RecordActionResult.fromResponse({ meta: {
+        outcome: 'saved', oid: 'oid-123', concurrency: { revision: 5, formFingerprint: 'sha256:form_1' },
+      } });
+      let finishSave!: (result: RecordActionResult) => void;
+      const update = spyOn(formComponent.recordService, 'update').and.returnValue(
+        new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
+      );
+
+      const saving = formComponent.saveForm({
+        closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 2,
+      });
+      const editNotes = () => {
+        notes.setValue('Later notes');
+        notes.markAsDirty();
+      };
+      if (editTiming === 'during transport') editNotes();
+      finishSave(response);
+      await saving;
+      expect(formComponent.saveNavigationPending()).toBeTrue();
+      tick(1000);
+      if (editTiming === 'during the redirect delay') editNotes();
+      tick(1000);
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(formComponent.saveNavigationPending()).toBeFalse();
+      expectNavigationWarning(formComponent, true);
+      update.and.resolveTo(response);
+      await formComponent.saveForm();
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update.calls.mostRecent().args[1]).toEqual({ title: 'Saved title', notes: 'Later notes' });
+      expectNavigationWarning(formComponent, false);
+    }));
+  }
+
+  it('warns after a failed delete and suppresses the warning on the confirmed delete redirect', fakeAsync(async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Unsubmitted title');
+    title.markAsDirty();
+    const remove = spyOn(formComponent.recordService, 'delete').and.resolveTo(retryFailureResponse('unknown'));
+    const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref')
+      .and.callFake(() => expectNavigationWarning(formComponent, false));
+    const options = { closeOnDelete: true, redirectLocation: '/dashboard', redirectDelaySeconds: 1 };
+
+    await formComponent.deleteRecord(options);
+    tick(1000);
+    expect(navigate).not.toHaveBeenCalled();
+    expectNavigationWarning(formComponent, true);
+
+    remove.and.resolveTo(RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123' } }));
+    await formComponent.deleteRecord(options);
+    tick(1000);
+    expect(navigate).toHaveBeenCalledOnceWith('/dashboard');
+  }));
+
   for (const navigation of ['redirect', 'workflow reload'] as const) {
     it(`allows a successful save to trigger a ${navigation} without an unload warning`, fakeAsync(async () => {
       const { formComponent } = await createConcurrencyTestForm();

@@ -360,12 +360,14 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
 
   public selectRecord(record: SelectableRecord): void {
     this.model?.setValue({ oid: record.oid, title: record.title });
+    this.formControl.markAsDirty();
     this.formControl.markAsTouched();
     this.isChangingSelection = false;
   }
 
   public clearSelection(): void {
     this.model?.setValue(null);
+    this.formControl.markAsDirty();
     this.formControl.markAsTouched();
     this.isChangingSelection = true;
   }

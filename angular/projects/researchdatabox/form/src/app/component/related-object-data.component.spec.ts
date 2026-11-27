@@ -376,6 +376,80 @@ describe('RelatedObjectDataComponent', () => {
     sub.unsubscribe();
   }));
 
+  it('leaves linked prefill and its metadata transfer pristine, while a later field change marks behaviour writes dirty', fakeAsync(() => {
+    recordService.resolveRelatedMetadata.and.callFake(async request => {
+      const oid = String(request.references?.['activities']);
+      return { activities: { status: 'resolved', issues: [], records: [{
+        redboxOid: oid, metadata: { title: `Activity ${oid}` }, metaMetadata: { type: 'activity', brandId: 'default' },
+      }] } };
+    });
+
+    const formConfig: FormConfigFrame = {
+      name: 'linked-prefill',
+      relatedRecords: { displayTargets: [], relations: [], sources: [{
+        relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
+      }] },
+      componentDefinitions: [
+        { name: 'selection', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
+        { name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'notes', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+      ],
+      behaviours: [
+        {
+          name: 'select-linked-record', condition: '::form.definition.ready', runOnFormReady: true,
+          actions: [
+            { type: 'setValue', config: { fieldPath: '/selection', hasValueTemplate: true, valueTemplate: '"A"' } },
+            { type: 'emitEvent', config: { eventType: 'field.value.changed', fieldId: '/selection', sourceId: '*' } },
+          ],
+        },
+        {
+          name: 'copy-related-metadata', condition: '/source::field.value.changed', runOnFormReady: false,
+          actions: [
+            { type: 'setValue', config: {
+              fieldPath: '/title', hasValueTemplate: true, valueTemplate: 'event.value.records[0].metadata.title ?? ""',
+            } },
+            { type: 'runTemplate', config: {
+              hasTemplate: true, applyResults: true,
+              template: 'event.value.status = "resolved" ? [{"fieldPath": "/notes", "target": "model.value", "value": formData.title}] : []',
+            } },
+          ],
+        },
+      ],
+    };
+    const assets: DynamicAssetOptions = { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp',
+      callable: (_key, path, context) => {
+        const template = path.reduce<unknown>((value, token) => (value as Record<string, unknown>)[token], formConfig);
+        return jsonataCompileAndEvaluate(String(template), context);
+      },
+    }] };
+    let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(formConfig, { editMode: true, oid: '' }, undefined, assets).then(value => { result = value; });
+    flushMicrotasks();
+    tick();
+    const { formComponent } = result;
+    const form = formComponent.form!;
+    expect(form.getRawValue()).toEqual({ selection: 'A', title: 'Activity A', notes: 'Activity A' });
+    expect(form.pristine).toBeTrue();
+    const prefilled = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(prefilled);
+    expect(prefilled.defaultPrevented).toBeFalse();
+
+    const input = (result.fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input')!;
+    input.value = 'B';
+    input.dispatchEvent(new Event('input'));
+    flushMicrotasks();
+    tick();
+
+    expect(form.getRawValue()).toEqual({ selection: 'B', title: 'Activity B', notes: 'Activity B' });
+    expect(form.get('title')?.dirty).toBeTrue();
+    expect(form.get('notes')?.dirty).toBeTrue();
+    const edited = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(edited);
+    expect(edited.defaultPrevented).toBeTrue();
+  }));
+
   it('terminates an A-to-B-to-A reference expression loop and permits a fresh explicit refresh', fakeAsync(() => {
     const resultFor = (oid: string): RelatedMetadataEntry => ({ status: 'resolved', issues: [], records: [{
       redboxOid: oid, metadata: { title: oid }, metaMetadata: { type: 'activity', brandId: 'default' },
