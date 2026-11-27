@@ -2,6 +2,7 @@ import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { filter, firstValueFrom, timeout } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import { HttpTestingController } from '@angular/common/http/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -1726,7 +1727,7 @@ describe('FormComponent', () => {
   });
 
   for (const editTiming of ['during transport', 'during the redirect delay'] as const) {
-    it(`merges saved metadata when a new edit cancels Save & Close ${editTiming}`, fakeAsync(async () => {
+    it(`synchronises saved metadata when a new edit cancels Save & Close ${editTiming}`, fakeAsync(async () => {
       const { formComponent } = await createConcurrencyTestForm();
       const title = formComponent.form!.get('title')!;
       const notes = formComponent.form!.get('notes')!;
@@ -1778,6 +1779,149 @@ describe('FormComponent', () => {
     }));
   }
 
+  for (const closeOnSave of [false, true]) {
+    it(`synchronises grouped server values while preserving late edits with closeOnSave=${closeOnSave}`, fakeAsync(async () => {
+      const { formComponent } = await createFormAndWaitForReady({
+        name: 'grouped-save',
+        componentDefinitions: [
+          {
+            name: 'contact',
+            model: { class: 'GroupModel' },
+            component: { class: 'GroupComponent', config: { componentDefinitions:
+              ['name', 'notes', 'obsolete'].map(name => ({
+                name,
+                model: { class: 'SimpleInputModel', config: { value: `Original ${name}` } },
+                component: { class: 'SimpleInputComponent' },
+              })),
+            } },
+          },
+          {
+            name: 'obsolete',
+            model: { class: 'SimpleInputModel', config: { value: 'Obsolete field' } },
+            component: { class: 'SimpleInputComponent' },
+          },
+        ],
+      }, { oid: 'oid-123', editMode: true });
+      const contact = formComponent.form!.get('contact')!;
+      const name = contact.get('name')!;
+      const notes = contact.get('notes')!;
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+      let finishSave!: (result: RecordActionResult) => void;
+      const update = spyOn(formComponent.recordService, 'update').and.returnValue(
+        new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
+      );
+      name.setValue('Sent name');
+      name.markAsDirty();
+
+      const saving = formComponent.saveForm(closeOnSave
+        ? { closeOnSave, redirectLocation: '/next', redirectDelaySeconds: 1 }
+        : { closeOnSave });
+      const editNotes = () => {
+        notes.setValue('Late notes');
+        notes.markAsDirty();
+      };
+      if (!closeOnSave) editNotes();
+      finishSave(RecordActionResult.fromResponse({ meta: {
+        outcome: 'saved', oid: 'oid-123',
+        metadata: { contact: { name: 'Normalised name', notes: 'Original notes' } },
+      } }));
+      await saving;
+      if (closeOnSave) {
+        expect(formComponent.saveNavigationPending()).toBeTrue();
+        editNotes();
+        tick(1000);
+      }
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(formComponent.saveNavigationPending()).toBeFalse();
+      expect(name.value).toBe('Normalised name');
+      expect(name.pristine).toBeTrue();
+      expect(notes.value).toBe('Late notes');
+      expect(notes.dirty).toBeTrue();
+      expect(contact.get('obsolete')?.value).toBeUndefined();
+      expect(formComponent.form!.get('obsolete')?.value).toBeUndefined();
+      expectNavigationWarning(formComponent, true);
+
+      const metadata = { contact: { name: 'Normalised name', notes: 'Late notes' } };
+      update.and.resolveTo(RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123', metadata } }));
+      await formComponent.saveForm();
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(update.calls.mostRecent().args[1])).toBe(JSON.stringify(metadata));
+      expectNavigationWarning(formComponent, false);
+    }));
+  }
+
+  it('sends the created record tag on the next strict Save after a never-sync close is cancelled', fakeAsync(async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'new-strict-record',
+      serverSyncOnSave: 'never',
+      componentDefinitions: [{
+        name: 'title',
+        model: { class: 'SimpleInputModel', config: { value: 'Draft' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', editMode: true });
+    const location = fixture.debugElement.injector.get(Location);
+    const replaceState = spyOn(location, 'replaceState');
+    const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+    const http = TestBed.inject(HttpTestingController);
+    const url = formComponent.recordService.brandingAndPortalUrl;
+    const title = formComponent.form!.get('title')!;
+    const createdTag = `"rb-record-v1.1.${'a'.repeat(43)}"`;
+    const updatedTag = `"rb-record-v1.2.${'b'.repeat(43)}"`;
+    const formFingerprint = 'sha256:form_1';
+    title.markAsDirty();
+
+    const creating = formComponent.saveForm({
+      closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 1,
+    });
+    const createRequest = http.expectOne({ method: 'POST', url: `${url}/recordmeta/rdmp` });
+    expect(createRequest.request.headers.has('If-Match')).toBeFalse();
+    createRequest.flush({ meta: {
+      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Draft' },
+      concurrency: { mode: 'strict', revision: 1, entityTag: createdTag, formFingerprint },
+    } });
+    await creating;
+    expect(formComponent.saveNavigationPending()).toBeTrue();
+    title.setValue('Edited after create');
+    title.markAsDirty();
+    tick(1000);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(formComponent.saveNavigationPending()).toBeFalse();
+    expect(formComponent.oid()).toBe('oid-created');
+    expect(replaceState).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-created');
+    expect(formComponent.recordBaseline()?.entityTag).toBe(createdTag);
+    expectNavigationWarning(formComponent, true);
+
+    const saving = formComponent.saveForm();
+    const updateRequest = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/oid-created` });
+    expect(updateRequest.request.headers.get('If-Match')).toBe(createdTag);
+    expect(updateRequest.request.headers.get('X-ReDBox-Form-Fingerprint')).toBe(formFingerprint);
+    expect(updateRequest.request.body).toEqual({ title: 'Edited after create' });
+    updateRequest.flush({ meta: {
+      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Edited after create' },
+      concurrency: { mode: 'strict', revision: 2, entityTag: updatedTag, formFingerprint },
+    } });
+    await saving;
+
+    expect(formComponent.saveResponse()?.isComplete()).toBeTrue();
+    expect(formComponent.recordBaseline()?.entityTag).toBe(updatedTag);
+    expectNavigationWarning(formComponent, false);
+    http.expectNone(request => request.url.startsWith(`${url}/recordmeta/`));
+  }));
+
+  it('leaves a clean form pristine when deletion fails without a conflict', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    spyOn(formComponent.recordService, 'delete').and.resolveTo(retryFailureResponse('unknown'));
+
+    await formComponent.deleteRecord({ closeOnDelete: true });
+
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.form?.pristine).toBeTrue();
+    expectNavigationWarning(formComponent, false);
+  });
+
   it('warns after a failed delete and suppresses the warning on the confirmed delete redirect', fakeAsync(async () => {
     const { formComponent } = await createConcurrencyTestForm();
     const title = formComponent.form!.get('title')!;
@@ -1801,10 +1945,34 @@ describe('FormComponent', () => {
     expectNavigationWarning(formComponent, false);
   }));
 
+  it('opens the record type dashboard when Back after deletion would only change the fragment', fakeAsync(async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
+    const currentEntry = { index: 1, url: window.location.href };
+    const previousEntry = { sameDocument: true, url: `${currentEntry.url}#notes` };
+    spyOnProperty(window as Window & { navigation?: unknown }, 'navigation', 'get').and.returnValue({
+      canGoBack: true, currentEntry, entries: () => [previousEntry, currentEntry],
+    });
+    const back = spyOn(fixture.debugElement.injector.get(Location), 'historyGo');
+    const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+    spyOn(formComponent.recordService, 'delete').and.resolveTo(
+      RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123' } })
+    );
+    formComponent.form!.get('title')!.markAsDirty();
+
+    await formComponent.deleteRecord({ closeOnDelete: true, redirectDelaySeconds: 0 });
+    expectNavigationWarning(formComponent, true);
+    tick(0);
+
+    expect(back).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledOnceWith('http://localhost/default/rdmp/dashboard/rdmp');
+  }));
+
   it('opens the record type dashboard after deletion when this is the first history entry', fakeAsync(async () => {
     const { fixture, formComponent } = await createConcurrencyTestForm();
     formComponent.recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
-    spyOnProperty(window.history, 'length', 'get').and.returnValue(1);
+    spyOnProperty(window as Window & { navigation?: unknown }, 'navigation', 'get')
+      .and.returnValue({ canGoBack: false, currentEntry: null });
     const back = spyOn(fixture.debugElement.injector.get(Location), 'historyGo');
     const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
     spyOn(formComponent.recordService, 'delete').and.resolveTo(
@@ -4088,8 +4256,10 @@ describe('FormComponent', () => {
     };
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     spyOnProperty(window.history, 'length', 'get').and.returnValue(2);
-    spyOnProperty(window as unknown as { navigation: { canGoBack: boolean } }, 'navigation', 'get')
-      .and.returnValue({ canGoBack: true });
+    const currentEntry = { index: 1 };
+    spyOnProperty(window as Window & { navigation?: unknown }, 'navigation', 'get').and.returnValue({
+      canGoBack: true, currentEntry, entries: () => [{ sameDocument: false }, currentEntry],
+    });
     formComponent.form!.get('text_exec')!.markAsDirty();
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormRedirectRequestedEvent[] = [];
