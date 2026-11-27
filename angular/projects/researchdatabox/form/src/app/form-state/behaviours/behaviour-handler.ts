@@ -10,6 +10,7 @@ import { FormFieldCompMapEntry, LoggerService, RecordService } from '@researchda
 import { FormComponent } from '../../form.component';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import {
+  FieldValueChangedEvent,
   FormComponentEvent,
   FormComponentEventMap,
   FormComponentEventType,
@@ -160,11 +161,10 @@ export class BehaviourHandler {
       let value = (event as { value?: unknown }).value;
       const selectedOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.value) : '';
       const previousOid = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? selectedRecordOid(event.previousValue) : '';
-      let fetchedNewSelection = false;
+      let recordImport: FieldValueChangedEvent['recordImport'];
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
-        // Only an actual link change expresses intent to replace an imported list.
-        const fetchesNewSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
-          typeof value === 'string' && !!selectedOid && value.trim() === selectedOid && selectedOid !== previousOid;
+        const fetchesSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
+          typeof value === 'string' && !!selectedOid && value.trim() === selectedOid;
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -173,10 +173,12 @@ export class BehaviourHandler {
           logger: this.ctx.logger,
           metadataCache: this.metadataCache,
         });
-        fetchedNewSelection = fetchesNewSelection;
+        recordImport = fetchesSelection
+          ? (selectedOid === previousOid ? 'same-selection' : 'changed-selection')
+          : undefined;
       }
 
-      await this.executeActions('actions', this.behaviour.actions ?? [], value, event, fetchedNewSelection);
+      await this.executeActions('actions', this.behaviour.actions ?? [], value, event, recordImport);
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
@@ -204,7 +206,7 @@ export class BehaviourHandler {
     actions: FormBehaviourActionConfig[],
     value: unknown,
     event: FormComponentEvent,
-    fetchedNewSelection = false
+    recordImport?: FieldValueChangedEvent['recordImport']
   ): Promise<void> {
     for (const [actionIndex, action] of actions.entries()) {
       const actionKey = this.buildActionKey(listName, actionIndex);
@@ -216,7 +218,7 @@ export class BehaviourHandler {
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,
-        fetchedNewSelection,
+        recordImport,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
         broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),

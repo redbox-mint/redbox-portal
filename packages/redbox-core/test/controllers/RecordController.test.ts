@@ -436,13 +436,18 @@ describe('RecordController update', () => {
     await controller.update(subsequent, makeResponse().res);
     expect(updateMeta.secondCall.args[7].contributors).to.deep.equal([retained, { name: 'Edited import' }]);
 
+    read.resolves({
+      ...currentRecord, metadata: {
+        ...currentRecord.metadata, contributors: [retained, { name: 'Edited import', known_ids: ['outgoing-identity'] }],
+      },
+    });
     const submit = await rowSaveRequest({
-      contributors: [null, { name: 'Replacement for review' }],
+      contributors: [null, { name: 'Edited import' }],
     }, { [path]: [{ retain: 0 }, null] }, await loadFormForRowEdits());
     submit.query.targetStep = 'review';
     await controller.update(submit, makeResponse().res);
     expect(updateMeta.thirdCall.args[6]).to.equal(nextStep);
-    expect(updateMeta.thirdCall.args[7].contributors).to.deep.equal([retained, { name: 'Replacement for review' }]);
+    expect(updateMeta.thirdCall.args[7].contributors).to.deep.equal([retained, { name: 'Edited import' }]);
   });
 
   it('keeps replacement and explicit merge semantics for other callers', async () => {

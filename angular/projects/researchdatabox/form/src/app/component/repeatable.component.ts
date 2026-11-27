@@ -1,6 +1,6 @@
 import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormArray, AbstractControl } from '@angular/forms';
+import { FormArray, FormGroup, AbstractControl } from '@angular/forms';
 import {
   FormFieldBaseComponent,
   FormFieldModel,
@@ -84,7 +84,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
           class="rb-form-repeatable__add btn btn-success"
           (click)="appendNewElement()"
           [attr.aria-label]="'add-button-label' | i18next"
-          [disabled]="isDisabled"
+          [disabled]="rowsDisabled"
         >
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
@@ -126,6 +126,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
+  }
+
+  protected get rowsDisabled(): boolean {
+    return this.isDisabled || this.model?.fieldConfig.config?.disabled === true;
   }
 
   protected get canChangeRows(): boolean {
@@ -533,8 +537,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
     const array = this.model?.formControl;
-    if (array && _isEqual(array.getRawValue(), nextValues)) return;
     const importing = options?.replaceImportedRows === true;
+    if (!importing && array && _isEqual(array.getRawValue(), nextValues)) return;
     if (importing && (this.readOnlyRows || array?.length !== this.compDefMapEntries.length)) return;
     let complete = false;
     if (array) {
@@ -545,7 +549,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (const entry of [...this.compDefMapEntries].reverse()) {
       // An imported list replaces editable rows. Keep disabled rows and their source proofs.
       const row = entry.defEntry.model?.formControl;
-      if (importing && array && row?.disabled && this.getFormComponent.isLoadedRow(array, row)) continue;
+      if (importing && array && row && this.getFormComponent.isLoadedRow(array, row) &&
+        (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true))) continue;
       this.removeElementFn(entry, options)();
     }
 
@@ -656,10 +661,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       elemEntry.wrapperRef = wrapperRef;
       return wrapperRef;
     }
-    if (this.isDisabled) {
-      layoutInstance.setDisabled(true, options);
-      compInstance?.setDisabled(true, options);
-    }
+    layoutInstance.parentDisabled = () => this.rowsDisabled;
     layoutInstance.canChangeRows = () => this.canChangeRows;
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
@@ -723,7 +725,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public moveElementFn(elemEntry: RepeatableElementEntry, delta: -1 | 1, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
-      if (!that.canSort || that.isDisabled) {
+      if (!that.canSort || that.rowsDisabled) {
         return;
       }
       const fromIndex = that.compDefMapEntries.findIndex(entry => entry.localUniqueId === elemEntry.localUniqueId);
@@ -780,25 +782,60 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       }
     }
   }
-
-  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
-    super.setDisabled(disabled, opts);
-    // Apply the parent's live state without changing the row's own editable configuration.
-    const template = this.elemInitFieldEntry?.compConfigJson;
-    for (const entry of this.compDefMapEntries) {
-      entry.defEntry?.layout?.setDisabled(disabled || template?.layout?.config?.disabled === true, opts);
-      entry.defEntry?.component?.setDisabled(disabled || template?.component?.config?.disabled === true, opts);
-      if (!disabled && template?.model?.config?.disabled === true) {
-        entry.defEntry?.model?.setDisabled(true, opts);
-      }
-    }
-    this.updateCanSortFlags();
-  }
 }
 
 export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
   protected override logName = RepeatableModelName;
   public override formControl?: RepeatableFormArray;
+  private disabledBeforeParent = new WeakSet<AbstractControl>();
+  private readonly rowModels = new WeakMap<AbstractControl, FormFieldModel<unknown>>();
+
+  private *rowControls(controls: AbstractControl[]): Iterable<AbstractControl> {
+    for (const control of controls) {
+      yield control;
+      if (control instanceof FormArray || control instanceof FormGroup) {
+        yield* this.rowControls(Object.values(control.controls));
+      }
+    }
+  }
+
+  private rememberDisabled(controls: AbstractControl[]): void {
+    for (const control of this.rowControls(controls)) {
+      if (control.disabled) this.disabledBeforeParent.add(control);
+    }
+  }
+
+  private remainsDisabled(control: AbstractControl): boolean {
+    return this.rowModels.get(control)?.fieldConfig.config?.disabled === true ||
+      (control.disabled && this.disabledBeforeParent.has(control));
+  }
+
+  public isRowDisabled(row: AbstractControl): boolean {
+    return this.fieldConfig.config?.disabled ? this.remainsDisabled(row) : row.disabled;
+  }
+
+  public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
+    const config = this.fieldConfig.config ??= {};
+    // An aggregate-disabled array can still contain independently disabled rows.
+    if (disabled === (config.disabled === true)) return;
+    config.disabled = disabled;
+    const array = this.formControl;
+    if (!array) return;
+
+    if (disabled) {
+      this.rememberDisabled(array.controls);
+      array.disable(opts);
+      return;
+    }
+
+    const toRestore = Array.from(this.rowControls(array.controls)).filter(control => this.remainsDisabled(control));
+    this.disabledBeforeParent = new WeakSet();
+    array.enable({ ...opts, onlySelf: true, emitEvent: false });
+    for (const control of toRestore) {
+      if (control.enabled) control.disable({ emitEvent: false });
+    }
+    array.updateValueAndValidity(opts);
+  }
 
   protected override postCreateGetInitValue(): Array<unknown> | undefined {
     // Store the init value. Use an empty array if the value is not set.
@@ -814,9 +851,11 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
 
   public addElement(targetModel?: FormFieldModel<unknown>, options?: RepeatableSetValueOptions) {
     const control = targetModel?.getFormControl();
-    if (this.formControl && control) {
-      if (this.fieldConfig.config?.disabled && control.enabled) {
-        control.disable();
+    if (this.formControl && control && targetModel) {
+      this.rowModels.set(control, targetModel);
+      if (this.fieldConfig.config?.disabled) {
+        this.rememberDisabled([control]);
+        control.disable({ emitEvent: false, onlySelf: true });
       }
       this.formControl.push(control, options);
     } else {
@@ -886,7 +925,7 @@ export interface RepeatableElementEntry {
                 (click)="clickedMoveUp()"
                 [attr.aria-label]="'move-up-button-label' | i18next"
                 [attr.title]="'move-up-button-label' | i18next"
-                [disabled]="isDisabled || !canMoveUp"
+                [disabled]="actionsDisabled || !canMoveUp"
               >
                 <span class="fa fa-arrow-up" aria-hidden="true"></span>
               </button>
@@ -896,7 +935,7 @@ export interface RepeatableElementEntry {
                 (click)="clickedMoveDown()"
                 [attr.aria-label]="'move-down-button-label' | i18next"
                 [attr.title]="'move-down-button-label' | i18next"
-                [disabled]="isDisabled || !canMoveDown"
+                [disabled]="actionsDisabled || !canMoveDown"
               >
                 <span class="fa fa-arrow-down" aria-hidden="true"></span>
               </button>
@@ -909,7 +948,7 @@ export interface RepeatableElementEntry {
               (click)="clickedRemove()"
               [attr.aria-label]="'remove-button-label' | i18next"
               [attr.title]="'remove-button-label' | i18next"
-              [disabled]="isDisabled"
+              [disabled]="actionsDisabled"
             >
               <span class="fa fa-minus-circle" aria-hidden="true"></span>
             </button>
@@ -932,6 +971,7 @@ export interface RepeatableElementEntry {
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
   protected override logName = RepeatableElementLayoutName;
   public canChangeRows = () => true;
+  public parentDisabled = () => false;
   public removeFn?: () => void;
   public moveUpFn?: () => void;
   public moveDownFn?: () => void;
@@ -939,6 +979,10 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   public canSort = false;
   public canMoveUp = false;
   public canMoveDown = false;
+
+  protected get actionsDisabled(): boolean {
+    return this.isDisabled || this.parentDisabled();
+  }
 
   protected get isInlineLayout(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;
@@ -952,17 +996,17 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   }
 
   protected clickedRemove() {
-    if (!this.canChangeRows()) return;
+    if (this.actionsDisabled || !this.canChangeRows()) return;
     this.removeFn?.call(this);
   }
 
   protected clickedMoveUp() {
-    if (!this.canChangeRows()) return;
+    if (this.actionsDisabled || !this.canChangeRows()) return;
     this.moveUpFn?.call(this);
   }
 
   protected clickedMoveDown() {
-    if (!this.canChangeRows()) return;
+    if (this.actionsDisabled || !this.canChangeRows()) return;
     this.moveDownFn?.call(this);
   }
 }

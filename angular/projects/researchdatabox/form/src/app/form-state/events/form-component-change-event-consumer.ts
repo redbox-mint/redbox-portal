@@ -30,8 +30,10 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
     if (!('target' in expression.config)) return;
     const target = expression.config.target || '';
     const control = this.model?.formControl;
-    const importsRows = event.fromRecordImport && expression.config.hasTemplate &&
+    const importsRows = event.recordImport && expression.config.hasTemplate &&
       target === FormExpressionsTargetModelValue && control instanceof FormArray && isCustomSetValueControl(control);
+    // Reselecting the linked record leaves the current rows and their save proofs intact.
+    if (importsRows && event.recordImport === 'same-selection') return;
     let targetValue: unknown = event.value;
     if (expression.config.hasTemplate) {
       // Evaluate the pre-compiled JSONata expression template (CSP-safe)

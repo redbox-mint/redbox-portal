@@ -1,7 +1,7 @@
 import { FieldPathKind, FormBehaviourActionConfig, FormBehaviourActionType } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FieldValueChangedEvent } from '../events/form-component-event.types';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
 import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviour-field-resolver';
@@ -17,7 +17,7 @@ export interface BehaviourActionExecutionContext {
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
-  fetchedNewSelection?: boolean;
+  recordImport?: FieldValueChangedEvent['recordImport'];
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -93,7 +93,7 @@ async function executeEmitEventAction(
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
-      ...(ctx.fetchedNewSelection && !action.config.hasValueTemplate ? { fromRecordImport: true } : {}),
+      ...(ctx.recordImport && !action.config.hasValueTemplate ? { recordImport: ctx.recordImport } : {}),
     })
   );
 }

@@ -1330,11 +1330,18 @@ describe('FormComponent', () => {
     ]);
   });
 
-  it('saves and submits the creator list populated by a linked record import expression', async () => {
+  const createCreatorImportForm = async (initial: { name: string }[], disabled = false) => {
     const oidTemplate = 'event.value.oid';
     const template = '$map(event.value.contributor_ci, function($creator) {{"name": $creator.family_name}})';
-    const creators = contributorList([{ name: 'Old creator' }, { name: 'Disabled creator' }]);
+    const enableTemplate = 'event.value ? false : true';
+    const creators = contributorList(initial, disabled);
     creators.expressions = [{
+      name: 'enable-creators-from-data-record',
+      config: {
+        conditionKind: 'jsonpointer', condition: '/dataRecord::field.value.changed', runOnFormReady: true,
+        target: 'field.disabled', hasTemplate: true, template: enableTemplate,
+      },
+    }, {
       name: 'creators-from-data-record',
       config: {
         conditionKind: 'jsonpointer', condition: '/dataRecordGetter::field.value.changed', runOnFormReady: false,
@@ -1362,19 +1369,11 @@ describe('FormComponent', () => {
       entries: [{
         urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/',
         callable: (_key, path, context) => jsonataCompileAndEvaluate(
-          path.includes('processors') ? oidTemplate : template, context
+          path.includes('processors') ? oidTemplate : path[path.length - 3] === 0 ? enableTemplate : template, context
         ),
       }],
     });
-    const path = '["creators"]';
-    formComponent.formDefMap!.formConfigMeta = {
-      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['old', 'disabled'] },
-    };
-    formComponent.form!.get(['creators', 1])!.disable();
     const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
-    fetch.withArgs('data-1').and.resolveTo({ contributor_ci: [{ family_name: 'Alpha' }, { family_name: 'Beta' }] });
-    fetch.withArgs('data-2').and.resolveTo({ contributor_ci: [{ family_name: 'Next import' }] });
-    fetch.withArgs('data-missing-creators').and.resolveTo({ title: 'No supplied creator list' });
     const bus = TestBed.inject(FormComponentEventBus);
     let selectedOid = 'data-original';
     const select = async (oid: string) => {
@@ -1382,14 +1381,60 @@ describe('FormComponent', () => {
         fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue: { oid: selectedOid },
       })));
       selectedOid = oid;
-      formComponent.form!.markAsDirty();
       await fixture.whenStable();
+      formComponent.form!.markAsDirty();
     };
+    return { formComponent, fetch, select };
+  };
+
+  it('retains disabled creators and row proofs across selector enablement, reselection, and import', async () => {
+    const { formComponent, fetch, select } = await createCreatorImportForm([
+      { name: 'Old creator' }, { name: 'Disabled creator' },
+    ], true);
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['old', 'disabled'] },
+    };
+    const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+    const protectedRow = repeatable.formFieldCompMapEntries[1].model!;
+    protectedRow.setDisabled(true);
+    expect(repeatable.isDisabled).toBeTrue();
+    const setDisabled = repeatable.setDisabled.bind(repeatable);
+    const enablement = new Promise<void>(resolve => {
+      spyOn(repeatable, 'setDisabled').and.callFake((disabled, opts) => {
+        setDisabled(disabled, opts);
+        if (!disabled) resolve();
+      });
+    });
+    fetch.withArgs('data-original').and.callFake(async () => {
+      await enablement;
+      expect(repeatable.isDisabled).toBeFalse();
+      expect(protectedRow.formControl?.disabled).toBeTrue();
+      return { contributor_ci: [{ family_name: 'Original singleton from source' }] };
+    });
+    fetch.withArgs('data-1').and.resolveTo({ contributor_ci: [{ family_name: 'Alpha' }, { family_name: 'Beta' }] });
+    fetch.withArgs('data-2').and.resolveTo({ contributor_ci: [{ family_name: 'Next import' }] });
+    fetch.withArgs('data-missing-creators').and.resolveTo({ title: 'No supplied creator list' });
     const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+      savedRowProofs: { [path]: ['old', 'disabled'] },
+    });
+    await select('data-original');
+    expect(fetch).toHaveBeenCalledWith('data-original');
+    await formComponent.saveForm();
+    expect(update).toHaveBeenCalledOnceWith(
+      'publication', { creators: [{ name: 'Old creator' }, null] }, '',
+      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'old' }, { source: 1, proof: 'disabled', retain: true }] } },
+    );
+    update.calls.reset();
+    update.and.resolveTo({
       success: true, oid: 'publication', message: '', data: null,
       savedRowProofs: { [path]: ['disabled-rebased', 'alpha', 'beta'] },
     });
 
+    protectedRow.setDisabled(false);
+    protectedRow.formControl!.disable();
+    repeatable.setDisabled(true);
     await select('data-1');
     expect(fetch).toHaveBeenCalledWith('data-1');
     await formComponent.saveForm();
@@ -1417,6 +1462,24 @@ describe('FormComponent', () => {
       'publication', { creators: [null, { name: 'Next import' }] }, 'review',
       { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, null] } },
     ]);
+  });
+
+  it('sends an explicit replacement for a changed linked record with identical visible creators', async () => {
+    const { formComponent, fetch, select } = await createCreatorImportForm([{ name: 'Same visible name' }]);
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['outgoing'] },
+    };
+    fetch.withArgs('other-record').and.resolveTo({ contributor_ci: [{ family_name: 'Same visible name' }] });
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['incoming'] },
+    });
+    await select('other-record');
+    await formComponent.saveForm({ targetStep: 'review' });
+    expect(update).toHaveBeenCalledOnceWith(
+      'publication', { creators: [{ name: 'Same visible name' }] }, 'review',
+      { formSave: true, rowEdits: { [path]: [null] } },
+    );
   });
 
   it('keeps replacement and descendant lists in the same tracking mode across saves', async () => {
