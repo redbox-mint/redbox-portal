@@ -1,5 +1,7 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
+import { ApplicationRef } from '@angular/core';
+import { HttpTestingController } from '@angular/common/http/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -919,6 +921,7 @@ describe('FormComponent', () => {
     try {
       const location = fixture.debugElement.injector.get(Location);
       const replaceStateSpy = spyOn(location, 'replaceState').and.stub();
+      const navigate = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
       (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
       spyOn(formComponent.recordService, 'create').and.resolveTo({
         success: true,
@@ -930,6 +933,7 @@ describe('FormComponent', () => {
       expect(formComponent.oid()).toBe('oid-123');
       expect(formComponent.formName()).toBe('');
       expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
+      expect(navigate).toHaveBeenCalledOnceWith('/default/rdmp/record/edit/oid-123', true);
 
       expect(events.length).toBe(1);
       expect(events[0].type).toEqual(FormComponentEventType.FORM_SAVE_SUCCESS);
@@ -942,6 +946,67 @@ describe('FormComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  it('keeps the create form inert while saving and restores it after a create failure', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'create-lock',
+      componentDefinitions: [{
+        name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Submitted' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', recordType: 'rdmp', editMode: true, formName: '', downloadAndCreateOnInit: false });
+
+    let failCreate!: (error: Error) => void;
+    const create = spyOn(formComponent.recordService, 'create').and.returnValue(new Promise((_resolve, reject) => {
+      failCreate = reject;
+    }));
+    const editor: HTMLElement = fixture.nativeElement;
+    const fields = editor.querySelector<HTMLElement>('.rb-form-components')!;
+    const originalForm = formComponent.form;
+    const pending = formComponent.saveForm({ force: true });
+    fixture.detectChanges();
+    expect(fields.inert).toBeTrue();
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledOnceWith({ title: 'Submitted' }, 'rdmp', '');
+
+    failCreate(new Error('Create request failed'));
+    await pending;
+    fixture.detectChanges();
+    expect(fields.inert).toBeFalse();
+    expect(formComponent.form).toBe(originalForm);
+    expect(formComponent.form?.get('title')?.value).toBe('Submitted');
+    expect(formComponent.form?.dirty).toBeTrue();
+  });
+
+  it('shows an editor load error at the saved draft URL if navigation cannot start', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'create-navigation-error',
+      componentDefinitions: [{
+        name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Submitted' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', recordType: 'rdmp', editMode: true, formName: '', downloadAndCreateOnInit: false });
+    const create = spyOn(formComponent.recordService, 'create').and.resolveTo({
+      success: true, oid: 'draft', message: '', data: null,
+    });
+    const replaceUrl = spyOn(fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
+    spyOn<any>(formComponent, 'changeLocationHref').and.throwError('Navigation failed');
+    const update = spyOn(formComponent.recordService, 'update');
+
+    await formComponent.saveForm({ force: true });
+    fixture.detectChanges();
+    expect(replaceUrl).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/record\/edit\/draft$/));
+    expect(formComponent.oid()).toBe('draft');
+    expect(formComponent.saveResponse()?.success).toBeTrue();
+    const editor: HTMLElement = fixture.nativeElement;
+    expect(editor.querySelector('.rb-form-shell__main [role="alert"]')?.textContent)
+      .toContain(TestBed.inject(TranslationService).t('form-load-error'));
+    expect(editor.querySelector<HTMLElement>('.rb-form-components')?.hidden).toBeTrue();
+
+    await formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('saves an existing creator and a group child after enablement', async () => {
@@ -1330,7 +1395,7 @@ describe('FormComponent', () => {
     ]);
   });
 
-  const createCreatorImportForm = async (initial: { name: string }[], disabled = false) => {
+  const creatorImportConfig = (initial: { name: string }[], disabled = false) => {
     const oidTemplate = 'event.value.oid';
     const template = '$map(event.value.contributor_ci, function($creator) {{"name": $creator.family_name}})';
     const enableTemplate = 'event.value ? false : true';
@@ -1348,7 +1413,7 @@ describe('FormComponent', () => {
         target: 'model.value', hasTemplate: true, template,
       },
     }];
-    const { fixture, formComponent } = await createFormAndWaitForReady({
+    const config: FormConfigFrame = {
       name: 'publication-draft',
       componentDefinitions: [creators],
       behaviours: [{
@@ -1363,16 +1428,23 @@ describe('FormComponent', () => {
           config: { eventType: 'field.value.changed', fieldId: '/dataRecordGetter', sourceId: '*' },
         }],
       }],
-    }, {
-      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
-    }, undefined, {
+    };
+    const assets: DynamicAssetOptions = {
       entries: [{
         urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/',
         callable: (_key, path, context) => jsonataCompileAndEvaluate(
           path.includes('processors') ? oidTemplate : path[path.length - 3] === 0 ? enableTemplate : template, context
         ),
       }],
-    });
+    };
+    return { config, assets };
+  };
+
+  const createCreatorImportForm = async (initial: { name: string }[], disabled = false) => {
+    const { config, assets } = creatorImportConfig(initial, disabled);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+    }, undefined, assets);
     const fetch = spyOn(formComponent.recordService, 'getRecordMeta');
     const bus = TestBed.inject(FormComponentEventBus);
     let selectedOid = 'data-original';
@@ -1480,6 +1552,121 @@ describe('FormComponent', () => {
       'publication', { creators: [{ name: 'Same visible name' }] }, 'review',
       { formSave: true, rowEdits: { [path]: [null] } },
     );
+  });
+
+  it('loads persisted row proofs after create before a linked record import and review save', async () => {
+    setWindowSearch('?dataRecordOid=old-source');
+    const createForm = creatorImportConfig([{ name: 'Same name' }]);
+    const createEditor = await createFormAndWaitForReady(createForm.config, {
+      oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, createForm.assets);
+    const create = spyOn(createEditor.formComponent.recordService, 'create').and.resolveTo({
+      success: true, oid: 'persisted-draft', message: '', data: null,
+    });
+    const navigate = spyOn<any>(createEditor.formComponent, 'changeLocationHref').and.stub();
+    spyOn(createEditor.fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
+    expect(createEditor.formComponent.getRequestParam('dataRecordOid')).toBe('old-source');
+
+    const bus = TestBed.inject(FormComponentEventBus);
+    let finishFetch!: (metadata: Record<string, unknown>) => void;
+    let fetchStarted!: () => void;
+    const fetching = new Promise<void>(resolve => { fetchStarted = resolve; });
+    const fetch = spyOn(createEditor.formComponent.recordService, 'getRecordMeta').and.callFake(() => {
+      fetchStarted();
+      return new Promise(resolve => { finishFetch = resolve; });
+    });
+    createEditor.fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
+      fieldId: '/dataRecord', sourceId: '*', value: { oid: 'old-source' },
+    })));
+    await fetching;
+    await createEditor.formComponent.saveForm({ force: true });
+    expect(create).not.toHaveBeenCalled();
+    finishFetch({});
+    await createEditor.fixture.whenStable();
+
+    await createEditor.formComponent.saveForm({ force: true });
+    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Same name' }] }, 'dataPublication', '');
+    expect(navigate).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/record\/edit\/persisted-draft$/), true);
+    const editUrl = new URL(navigate.calls.first().args[0], window.location.origin);
+    expect(editUrl.searchParams.has('dataRecordOid')).toBeFalse();
+    expect(createEditor.formComponent.getRequestParam('dataRecordOid')).toBeUndefined();
+    createEditor.fixture.destroy();
+    const appComponents = TestBed.inject(ApplicationRef).components;
+    const closed = appComponents.indexOf(createEditor.fixture.componentRef);
+    if (closed >= 0) appComponents.splice(closed, 1);
+    setWindowSearch(editUrl.search);
+
+    // The persisted edit form can include rows or metadata added by save hooks.
+    const { config, assets } = creatorImportConfig([{ name: 'Same name' }, { name: 'Disabled creator' }]);
+    const loadCondition = '$exists(runtimeContext.requestParams.dataRecordOid)';
+    const loadOid = 'runtimeContext.requestParams.dataRecordOid';
+    config.behaviours!.push({
+      name: 'import-on-form-ready',
+      conditionKind: 'jsonata_query', condition: loadCondition, runOnFormReady: true,
+      processors: [
+        { type: 'jsonataTransform', config: { hasTemplate: true, template: loadOid } },
+        { type: 'fetchMetadata' },
+      ],
+      actions: [{ type: 'emitEvent', config: {
+        eventType: 'field.value.changed', fieldId: '/dataRecordGetter', sourceId: '*',
+      } }],
+    });
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) =>
+      path[0] === 'behaviours' && path[1] === 1
+        ? jsonataCompileAndEvaluate(path.includes('processors') ? loadOid : loadCondition, context)
+        : evaluate(key, path, context);
+    setUpDynamicAssets(assets);
+    const fixture = TestBed.createComponent(FormComponent);
+    ensureApplicationRefFormComponent(fixture.componentRef);
+    const editor = fixture.componentInstance;
+    editor.oid.set(editUrl.pathname.split('/').pop()!);
+    editor.recordType.set('dataPublication');
+    editor.formName.set('');
+    editor.editMode.set(true);
+    editor.downloadAndCreateOnInit.set(false);
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
+
+    fetch.calls.reset();
+    fetch.and.resolveTo({ contributor_ci: [{ family_name: 'Same name' }] });
+    const path = '["creators"]';
+    const load = editor.downloadAndCreateFormComponents();
+    const request = TestBed.inject(HttpTestingController).expectOne(req =>
+      req.url.includes('/record/form/auto/persisted-draft?') &&
+      new URL(req.url).searchParams.get('rowEdits') === 'true' &&
+      new URL(req.url).searchParams.get('edit') === 'true'
+    );
+    request.flush({
+      data: config,
+      meta: { oid: 'persisted-draft', editableRowPaths: [path], rowProofs: { [path]: ['outgoing', 'disabled'] } },
+    });
+    await load;
+    await fixture.whenStable();
+    expect(fetch).not.toHaveBeenCalled();
+    editor.form!.get(['creators', 1])!.disable();
+
+    fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
+      fieldId: '/dataRecord', sourceId: '*', value: { oid: 'new-source' }, previousValue: { oid: 'old-source' },
+    })));
+    await fixture.whenStable();
+    expect(fetch).toHaveBeenCalledOnceWith('new-source');
+    const update = spyOn(editor.recordService, 'update').and.resolveTo({
+      success: true, oid: 'persisted-draft', message: '', data: null,
+      savedRowProofs: { [path]: ['disabled-rebased', 'incoming'] },
+    });
+    await editor.saveForm({ force: true });
+    expect(update).toHaveBeenCalledOnceWith(
+      'persisted-draft', { creators: [null, { name: 'Same name' }] }, '',
+      { formSave: true, rowEdits: { [path]: [{ source: 1, proof: 'disabled', retain: true }, null] } },
+    );
+
+    editor.form!.get(['creators', 1, 'name'])!.setValue('Edited after import');
+    await editor.saveForm({ force: true, targetStep: 'review' });
+    expect(update.calls.argsFor(1)).toEqual([
+      'persisted-draft', { creators: [null, { name: 'Edited after import' }] }, 'review',
+      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'disabled-rebased', retain: true }, { source: 1, proof: 'incoming' }] } },
+    ]);
   });
 
   it('keeps replacement and descendant lists in the same tracking mode across saves', async () => {

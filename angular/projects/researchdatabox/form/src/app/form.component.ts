@@ -89,6 +89,8 @@ import {
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { DataLocationComponent } from './component/data-location.component';
+import { FileUploadComponent } from './component/file-upload.component';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormSaveRows } from './form-save-rows';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
@@ -241,6 +243,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
+  protected readonly creatingRecord = signal(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
 
@@ -1220,7 +1223,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
+  private prepareUploadsForCreate(entries: FormFieldCompMapEntry[]): boolean {
+    return entries.every(({ component }) => {
+      if ((component instanceof DataLocationComponent || component instanceof FileUploadComponent) &&
+          !component.prepareForCreate()) {
+        return false;
+      }
+      return this.prepareUploadsForCreate(component?.formFieldCompMapEntries ?? []);
+    });
+  }
+
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
+    if (this.creatingRecord() || (!this.componentsLoaded() && this.error())) return;
+
     const forceSave = options?.force ?? false;
     const targetStep = options?.targetStep ?? '';
     const enabledValidationGroups = options?.enabledValidationGroups ?? ['all'];
@@ -1263,6 +1278,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
+        const creating = !this.trimmedParams.oid();
+        if (creating && (this.behaviourManager.isLoadingMetadata || this.formSaveRows.hasPendingImport(this.form))) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: 'Wait for the linked record to finish loading before creating this record.',
+          }));
+          return;
+        }
+        if (creating && !this.prepareUploadsForCreate(this.componentDefArr)) {
+          this.eventBus.publish(createFormSaveFailureEvent({
+            error: 'Finish or remove pending uploads before creating this record.',
+          }));
+          return;
+        }
+
+        let leavingCreatedRecord = false;
+        if (creating) this.creatingRecord.set(true);
         this.saveResponse.set(null); // Indicate save in progress
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
@@ -1279,7 +1310,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           const savedData = hasRetainedRows ? this.getPersistedFormValue() : currentFormValue;
           // Mark form as pristine as we cloned the data already
           this.form.markAsPristine();
-          if (_isEmpty(this.trimmedParams.oid())) {
+          if (creating) {
             // Actual record creation via RecordService call
             response = await this.recordService.create(currentFormValue, this.trimmedParams.recordType(), targetStep);
           } else {
@@ -1294,11 +1325,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           if (response?.success) {
             submitted.markSaved(response.savedRowProofs);
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
-            if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
-              const createdOid = String(response?.oid);
+            let createdEditPath: string | undefined;
+            if (creating && response.oid) {
+              const createdOid = String(response.oid);
               this.oid.set(createdOid);
               this.formName.set('');
-              this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              createdEditPath = this.buildEditRecordPath(createdOid);
+              leavingCreatedRecord = true;
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             // Emit success event
@@ -1312,6 +1345,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
+            if (createdEditPath) {
+              this.finishCreateNavigation(createdEditPath, options?.closeOnSave);
+            }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
             // Mark form as dirty again since save failed
@@ -1340,6 +1376,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAllAsDirty();
           // emit failure event
           this.eventBus.publish(createFormSaveFailureEvent({ error: errorMsg }));
+        } finally {
+          if (!leavingCreatedRecord) this.creatingRecord.set(false);
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -1471,8 +1509,25 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
   }
 
-  protected changeLocationHref(redirectLocation: string): void {
-    if (this.window?.location) {
+  private finishCreateNavigation(path: string, closeOnSave = false): void {
+    try {
+      this.locationService.replaceState(path);
+      this.refreshRequestParamsFromUrl(path);
+      if (!closeOnSave) {
+        this.componentsLoaded.set(false);
+        this.changeLocationHref(path, true);
+      }
+    } catch (error) {
+      this.loggerService.error(`${this.logName}: Could not open the saved record`, error);
+      this.componentsLoaded.set(false);
+      this.store.dispatch(FormActions.loadInitialDataFailure({ error: 'form-load-error' }));
+    }
+  }
+
+  protected changeLocationHref(redirectLocation: string, replace = false): void {
+    if (replace) {
+      this.window?.location.replace(redirectLocation);
+    } else if (this.window?.location) {
       this.window.location.href = redirectLocation;
     }
   }

@@ -85,6 +85,16 @@ export class FormSaveRows {
     return this.origins.get(row)?.array === array;
   }
 
+  hasPendingImport(control: AbstractControl): boolean {
+    if (control instanceof FormArray) {
+      const imported = this.imported.get(control);
+      return (imported !== undefined && !imported()) ||
+        control.controls.some(row => this.hasPendingImport(row));
+    }
+    return control instanceof FormGroup &&
+      Object.values(control.controls).some(child => this.hasPendingImport(child));
+  }
+
   snapshot(
     form: FormGroup | undefined, included: (control: AbstractControl) => boolean,
     proofs?: FormRowProofs, updating = !!proofs, editableRowPaths?: string[]

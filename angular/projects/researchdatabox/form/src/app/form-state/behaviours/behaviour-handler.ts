@@ -50,6 +50,7 @@ export class BehaviourHandler {
   private readonly permanentlySkippedActions = new Set<string>();
   private readonly metadataCache = new Map<string, unknown>();
   private isProcessingFormReadyExecution = false;
+  private pendingMetadataLoads = 0;
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -140,6 +141,8 @@ export class BehaviourHandler {
     if (isFormReadyEvent) {
       this.isProcessingFormReadyExecution = true;
     }
+    const fetchesMetadata = this.behaviour.processors?.some(processor => processor.type === FormBehaviourProcessorType.FetchMetadata);
+    if (fetchesMetadata) this.pendingMetadataLoads++;
     try {
       const condition = this.behaviour.condition;
       const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
@@ -192,10 +195,15 @@ export class BehaviourHandler {
         this.hasExecutedFormReady = true;
       }
     } finally {
+      if (fetchesMetadata) this.pendingMetadataLoads--;
       if (isFormReadyEvent) {
         this.isProcessingFormReadyExecution = false;
       }
     }
+  }
+
+  get isLoadingMetadata(): boolean {
+    return this.pendingMetadataLoads > 0;
   }
 
   /**

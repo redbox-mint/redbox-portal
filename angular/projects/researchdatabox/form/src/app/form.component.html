@@ -7,7 +7,10 @@
         <img class="center-block rb-form-loading__spinner" src="/images/loading.svg" [attr.alt]="'loading-alt-text' | i18next" />
       </div>
     }
-    <div class="rb-form-components" [attr.aria-hidden]="!componentsLoaded() ? 'true' : null">
+    <div class="rb-form-components"
+      [hidden]="!componentsLoaded() && !!error()"
+      [attr.inert]="creatingRecord() ? '' : null"
+      [attr.aria-hidden]="!componentsLoaded() ? 'true' : null">
       <ng-container #componentsContainer></ng-container>
     </div>
   </div>

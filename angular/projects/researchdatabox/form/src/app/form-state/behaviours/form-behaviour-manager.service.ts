@@ -53,6 +53,10 @@ export class FormBehaviourManager implements OnDestroy {
     }
   }
 
+  get isLoadingMetadata(): boolean {
+    return this.handlers.some(handler => handler.isLoadingMetadata);
+  }
+
   /**
    * Release all active behaviour handlers.
    */
