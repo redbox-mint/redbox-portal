@@ -584,6 +584,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const previousValue = this.formControl?.value;
     this.model?.setTimeValue(timeValue);
     if (this.formControl && !areDateInputValuesEqual(previousValue, this.formControl.value)) {
+      this.requestFormDirty('time.change');
       this.formControl.markAsDirty();
     }
   }

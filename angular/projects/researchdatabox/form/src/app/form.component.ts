@@ -1843,11 +1843,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const syncMode = formDefMap?.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
             const canSyncMetadata = metadata !== null && typeof metadata === 'object' &&
               !Array.isArray(metadata) && formDefMap && form;
-            const finishOpenSave = async (syncMetadata: boolean): Promise<boolean> => {
+            const finishOpenSave = async (syncMetadata: boolean, metadataSyncMode = syncMode): Promise<boolean> => {
               if (syncMetadata && canSyncMetadata) {
-                if (syncMode !== 'never') {
+                if (metadataSyncMode !== 'never') {
                   const syncResult = await this.serverSyncService.applyServerMetadata(
-                    currentFormValue, metadata, formDefMap, form, syncMode
+                    currentFormValue, metadata, formDefMap, form, metadataSyncMode
                   );
                   if (!ownsSave()) return false;
                   if (this.serverSyncRequiresReview(syncResult)) {
@@ -1888,8 +1888,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   return true;
                 }
                 // Success was already announced to start the redirect delay.
-                // Finish as an open save and refresh its model snapshot.
-                void finishOpenSave(true).then(finished => {
+                // Preserve the edits that cancelled navigation and refresh the model snapshot.
+                void finishOpenSave(true, syncMode === 'never' ? 'never' : 'preserveLocalEdits').then(finished => {
                   if (finished && ownsSave()) this.facade.syncModelSnapshot(this.getPersistedFormValue());
                 }).catch((error: unknown) => {
                   this.loggerService.error(`${this.logName}: Error completing save with the form open:`, error);

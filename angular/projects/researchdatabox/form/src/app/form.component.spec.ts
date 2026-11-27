@@ -126,11 +126,15 @@ function conflictSaveResponse(
   return Object.assign(result, overrides);
 }
 
-async function createConcurrencyTestForm(includeDelete = false) {
+async function createConcurrencyTestForm(
+  includeDelete = false,
+  serverSyncOnSave?: FormConfigFrame['serverSyncOnSave'],
+) {
   const result = await createFormAndWaitForReady(
     {
       name: 'concurrency-rebase',
       type: 'rdmp',
+      serverSyncOnSave,
       componentDefinitions: [
         {
           name: 'title',
@@ -1726,9 +1730,14 @@ describe('FormComponent', () => {
     expectNavigationWarning(formComponent, true);
   });
 
-  for (const editTiming of ['during transport', 'during the redirect delay'] as const) {
-    it(`synchronises saved metadata when a new edit cancels Save & Close ${editTiming}`, fakeAsync(async () => {
-      const { formComponent } = await createConcurrencyTestForm();
+  for (const [editTiming, syncMode] of [
+    ['during transport', 'preserveLocalEdits'],
+    ['during the redirect delay', 'preserveLocalEdits'],
+    ['during transport', 'always'],
+    ['during the redirect delay', 'always'],
+  ] as const) {
+    it(`preserves a new edit ${editTiming} that cancels Save & Close with ${syncMode} sync`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm(false, syncMode);
       const title = formComponent.form!.get('title')!;
       const notes = formComponent.form!.get('notes')!;
       title.setValue('Saved title');
@@ -1764,6 +1773,7 @@ describe('FormComponent', () => {
       expect(formComponent.saveNavigationPending()).toBeFalse();
       expect(title.value).toBe('Normalised title');
       expect(notes.value).toBe('Later notes');
+      expect(notes.dirty).toBeTrue();
       expect(formComponent.recordBaseline()?.revision).toBe(5);
       expectNavigationWarning(formComponent, true);
       update.and.resolveTo(RecordActionResult.fromResponse({ meta: {
@@ -1896,7 +1906,7 @@ describe('FormComponent', () => {
     const createRequest = http.expectOne({ method: 'POST', url: `${url}/recordmeta/rdmp` });
     expect(createRequest.request.headers.has('If-Match')).toBeFalse();
     createRequest.flush({ meta: {
-      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Draft' },
+      outcome: 'saved', oid: 'oid-created', metadata: { title: 'Normalised draft' },
       concurrency: { mode: 'strict', revision: 1, entityTag: createdTag, formFingerprint },
     } });
     await creating;
@@ -1907,6 +1917,8 @@ describe('FormComponent', () => {
 
     expect(navigate).not.toHaveBeenCalled();
     expect(formComponent.saveNavigationPending()).toBeFalse();
+    expect(title.value).toBe('Edited after create');
+    expect(title.dirty).toBeTrue();
     expect(formComponent.oid()).toBe('oid-created');
     expect(replaceState).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-created');
     expect(formComponent.recordBaseline()?.entityTag).toBe(createdTag);
