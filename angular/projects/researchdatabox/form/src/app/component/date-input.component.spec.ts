@@ -103,6 +103,33 @@ describe('DateInputComponent', () => {
     });
   }
 
+  it('marks a populated date dirty after a time-only edit and keeps programmatic writes pristine', async () => {
+    const initialDate = new Date(2026, 9, 3, 12);
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'date-time-edit',
+      componentDefinitions: [{
+        name: 'date',
+        model: { class: 'DateInputModel', config: { value: initialDate } },
+        component: { class: 'DateInputComponent', config: { enableTimePicker: true } },
+      }],
+    }, { editMode: true });
+    const date = formComponent.form!.get('date')!;
+    await setControlValue(date, new Date(2026, 9, 4, 12), { emitEvent: false });
+    expect(date.pristine).toBeTrue();
+    expect(formComponent.hasChangesToSave()).toBeFalse();
+
+    const timeInput = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input[type="time"]')!;
+    timeInput.value = '18:45';
+    timeInput.dispatchEvent(new Event('change'));
+
+    expect(date.value).toEqual(new Date('2026-10-04T18:45:00.000Z'));
+    expect(date.dirty).toBeTrue();
+    expect(formComponent.hasChangesToSave()).toBeTrue();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeTrue();
+  });
+
   it('should render Date input component from default value', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

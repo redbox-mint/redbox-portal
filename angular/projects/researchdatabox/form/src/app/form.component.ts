@@ -427,8 +427,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private window: Window & typeof globalThis | null;
   private allowConflictNavigationOnce = false;
+  private allowDeleteRedirectUntil = 0;
   private hasUnconfirmedSaveEdits = false;
-  private recordDeleted = false;
+  private initializationWindowClosed = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
 
@@ -628,8 +629,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.saveNavigationPending.set(false);
     this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
+    this.allowDeleteRedirectUntil = 0;
     this.hasUnconfirmedSaveEdits = false;
-    this.recordDeleted = false;
+    this.initializationWindowClosed = false;
     this.conflictExportCompleted = false;
   }
 
@@ -774,6 +776,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             createFormRedirectRequestedEvent({
               // if closeOnDelete is true, but no redirect is specified, go to the previous page.
               historyDelta: evt?.redirectLocation ? undefined : -1,
+              afterDelete: true,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
               formScopeId: this.eventScopeId,
@@ -861,6 +864,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           historyDelta: evt?.historyDelta,
           redirectLocation: evt?.redirectLocation,
           redirectDelaySeconds: evt?.redirectDelaySeconds,
+          afterDelete: evt.afterDelete,
         };
         try {
           this.doRedirect(redirectOptions);
@@ -942,6 +946,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (revalidate) {
       this.form.updateValueAndValidity({ emitEvent: false });
     }
+    this.initializationWindowClosed ||= this.form.dirty && this.hasChangesToSave();
     const status = this.dataStatus;
     this.formGroupStatus.set(status);
     this.eventBus.publish(
@@ -1291,6 +1296,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const values = Object.values(children) as AbstractControl[];
     return values.some(child => this.hasLocalDirtyControl(child)) ||
       (control.dirty && values.every(child => child.pristine));
+  }
+
+  public get hasStartedEditingOrSaving(): boolean {
+    return this.initializationWindowClosed || this.hasChangesToSave();
   }
 
   public hasChangesToSave(form = this.form): boolean {
@@ -1668,6 +1677,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
+          this.initializationWindowClosed = true;
           this.hasUnconfirmedSaveEdits ||= this.hasChangesToSave();
           this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           this.form.markAsPristine();
@@ -2648,7 +2658,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (this.recordDeleted || (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave())) {
+    if (this.allowDeleteRedirectUntil) {
+      const isDeleteRedirect = Date.now() < this.allowDeleteRedirectUntil;
+      this.allowDeleteRedirectUntil = 0;
+      if (isDeleteRedirect) return undefined;
+    }
+    if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
       return undefined;
     }
     const warning = this.conflictNavigationWarning();
@@ -3056,7 +3071,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           })
         );
       } else {
-        this.recordDeleted = true;
         this.formConflictState.set(null);
         this.eventBus.publish(
           createFormDeleteSuccessEvent({
@@ -3089,6 +3103,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     historyDelta?: number,
     redirectLocation?: string,
     redirectDelaySeconds?: number,
+    afterDelete?: boolean,
   }) {
     const historyDelta = options?.historyDelta;
     const redirectLocation = options?.redirectLocation;
@@ -3103,9 +3118,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
     }
 
+    const afterDelete = options?.afterDelete;
+    const loadRevision = this.formLoadRevision;
     const canCompleteSaveRedirect = this.canCompleteSaveRedirect;
     this.window?.setTimeout(() => {
       if (this.isDestroyed || canCompleteSaveRedirect?.() === false) return;
+      if (afterDelete) {
+        if (this.formLoadRevision !== loadRevision) return;
+        // History traversal can fire beforeunload asynchronously, or leave the
+        // document open when there's no previous page.
+        this.allowDeleteRedirectUntil = Date.now() + 1000;
+      }
       if (historyDelta) {
         this.locationService.historyGo(historyDelta);
       } else if (redirectLocation) {

@@ -277,6 +277,7 @@ export interface FieldItemSelectedEvent extends FieldScopedEventBase {
  */
 export interface FormRedirectRequestedEvent extends FormComponentEventBase, RedirectLocationEventBase {
   readonly type: 'form.redirect.requested';
+  readonly afterDelete?: boolean;
   /**
    * Allows using the History.go interface to move forward and backward in the browser's session history.
    */

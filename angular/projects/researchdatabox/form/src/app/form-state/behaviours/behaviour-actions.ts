@@ -1,3 +1,5 @@
+import { AbstractControl } from '@angular/forms';
+import { isEqual } from 'lodash-es';
 import {
   FieldPathKind,
   FieldPathKindType,
@@ -128,11 +130,20 @@ async function executeSetValueEntry(
 
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
+  const previousValue: unknown = resolved.control.value;
   resolved.control.setValue(value, { emitEvent: false });
-  if (!ctx.initializing && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
-    resolved.control.markAsDirty();
-  }
+  markBehaviourValueDirty(resolved.control, previousValue, ctx);
   ctx.broadcastFormStatus?.();
+}
+
+function markBehaviourValueDirty(
+  control: AbstractControl,
+  previousValue: unknown,
+  ctx: BehaviourActionExecutionContext,
+): void {
+  const { formComponent } = ctx.fieldResolverContext;
+  if (ctx.initializing && (!formComponent.hasStartedEditingOrSaving || isEqual(previousValue, control.value))) return;
+  if (!formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
 }
 
 /**
@@ -286,12 +297,11 @@ async function applyRunTemplateInstructions(
       host = buildTargetHost(resolved.entry);
     }
 
+    const control = target === FormExpressionsTargetModelValue ? host.model?.formControl : undefined;
+    const previousValue: unknown = control?.value;
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
-    if (target === FormExpressionsTargetModelValue && !ctx.initializing) {
-      const control = host.model?.formControl;
-      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
-    }
+    if (control) markBehaviourValueDirty(control, previousValue, ctx);
   }
 }
 

@@ -581,7 +581,11 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   onTimeChange(event: Event) {
     let timeValue = (event.target as HTMLInputElement).value as string;
     this.loggerService.info(`timeValue ${timeValue}`, '');
+    const previousValue = this.formControl?.value;
     this.model?.setTimeValue(timeValue);
+    if (this.formControl && !areDateInputValuesEqual(previousValue, this.formControl.value)) {
+      this.formControl.markAsDirty();
+    }
   }
 
   onInputBlur(event: FocusEvent): void {
