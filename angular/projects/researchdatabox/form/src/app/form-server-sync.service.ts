@@ -3,10 +3,10 @@ import { relatedDisplayEmptyValue, setRelatedDisplayAbsent } from './form-state/
 import { retainRelatedDisplayValues, relatedDisplayActive } from '@researchdatabox/sails-ng-common';
 import { Injectable, inject } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, ValueChangeEvent } from '@angular/forms';
-import { get, has, isEqual, isPlainObject, set, unset } from 'lodash-es';
+import { get, has, isEqual, set, unset } from 'lodash-es';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentsMap, FormService } from './form.service';
-import { isCustomSetValueControl, setControlValue } from './form-state/custom-set-value.control';
+import { setControlValue } from './form-state/custom-set-value.control';
 
 export type ServerSyncMode = 'always' | 'preserveLocalEdits' | 'never';
 export type ServerSyncSkipReason =
@@ -33,10 +33,9 @@ export class FormServerSyncService {
     serverValue: Record<string, unknown>,
     formDefMap: FormComponentsMap,
     form: FormGroup,
-    mode: ServerSyncMode,
-    source: 'partial' | 'saved' = 'partial'
+    mode: ServerSyncMode
   ): Promise<ServerSyncResult> {
-    return this.syncServerMetadata(sentValue, serverValue, formDefMap, form, mode, source);
+    return this.syncServerMetadata(sentValue, serverValue, formDefMap, form, mode, false);
   }
 
   /** Replace every projected form control after an explicit discard/adopt decision. */
@@ -45,7 +44,7 @@ export class FormServerSyncService {
     formDefMap: FormComponentsMap,
     form: FormGroup
   ): Promise<ServerSyncResult> {
-    return this.syncServerMetadata({}, serverValue, formDefMap, form, 'always', 'replace');
+    return this.syncServerMetadata({}, serverValue, formDefMap, form, 'always', true);
   }
 
   private async syncServerMetadata(
@@ -54,7 +53,7 @@ export class FormServerSyncService {
     formDefMap: FormComponentsMap,
     form: FormGroup,
     mode: ServerSyncMode,
-    source: 'partial' | 'saved' | 'replace'
+    replaceMissing: boolean
   ): Promise<ServerSyncResult> {
     const result: ServerSyncResult = { patched: [], skipped: [] };
     if (mode === 'never') {
@@ -81,11 +80,6 @@ export class FormServerSyncService {
     }
     const controls = formDefMap.withFormControl ?? {};
     const completeGroupMap = formDefMap.completeGroupMap ?? {};
-    const replaceMissing = source === 'replace';
-    // A save response is the saved projection. Clear previously sent values
-    // that it omits, while leaving controls outside that submission alone.
-    const applyMissing = (path: string[]) =>
-      replaceMissing || (source === 'saved' && get(sentValue, path) !== undefined);
     const classification = (path: string[]) => {
       if (targets.some(target => target.display && target.path.length <= path.length && target.path.every((token, index) => token === path[index]))) return 'display';
       if (targets.some(target => target.display && path.length < target.path.length && path.every((token, index) => token === target.path[index]))) return 'ancestor';
@@ -118,7 +112,7 @@ export class FormServerSyncService {
       const present = has(comparison, path);
       const sent = get(sentValue, path);
       const server = get(comparison, path);
-      if (!present && !applyMissing(path)) return 'not-in-server';
+      if (!present && !replaceMissing) return 'not-in-server';
       if (isEqual(ancestor ? localView(sent, path) : sent, ancestor ? localView(server, path) : server) &&
         (!replaceMissing || present)) return 'unchanged';
       if (mode === 'preserveLocalEdits' && (ancestor ? localDirty(control, path) : control.dirty)) return 'local-edit';
@@ -234,18 +228,6 @@ export class FormServerSyncService {
         for (const target of targets.filter(item => item.display && path.every((token, index) => token === item.path[index]))) pendingTargets.set(target, undefined);
         return;
       }
-      if (source === 'saved' && !ancestor && control instanceof FormGroup && !isCustomSetValueControl(control) &&
-          (isPlainObject(server) || (!has(serverValue, path) && applyMissing(path)))) {
-        const children = Object.entries(control.controls);
-        // Child edits protect their own values. A group marked dirty directly
-        // still represents an edit to the whole group.
-        if (mode !== 'preserveLocalEdits' || control.pristine || children.some(([, child]) => child.dirty)) {
-          for (const [childName, child] of children) {
-            await visit(child, [...path, childName]);
-          }
-          return;
-        }
-      }
       const preserve = preserveReason(control, path);
       if (preserve) {
         result.skipped.push({ name, reason: preserve });
@@ -354,7 +336,7 @@ export class FormServerSyncService {
     const orderedNames = [...names].sort((left, right) => Number(classification([left]) !== 'local') - Number(classification([right]) !== 'local'));
     for (const name of orderedNames) {
       const component = completeGroupMap[name];
-      if (!has(serverValue, [name]) && !applyMissing([name])) {
+      if (!has(serverValue, [name]) && !replaceMissing) {
         result.skipped.push({ name, reason: 'not-in-server' });
       } else if (component && !this.formService.shouldIncludeInFormControlMap(component)) {
         result.skipped.push({ name, reason: 'excluded' });

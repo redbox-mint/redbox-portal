@@ -1780,75 +1780,93 @@ describe('FormComponent', () => {
   }
 
   for (const closeOnSave of [false, true]) {
-    it(`synchronises grouped server values while preserving late edits with closeOnSave=${closeOnSave}`, fakeAsync(async () => {
-      const { formComponent } = await createFormAndWaitForReady({
-        name: 'grouped-save',
-        componentDefinitions: [
-          {
-            name: 'contact',
-            model: { class: 'GroupModel' },
-            component: { class: 'GroupComponent', config: { componentDefinitions:
-              ['name', 'notes', 'obsolete'].map(name => ({
-                name,
-                model: { class: 'SimpleInputModel', config: { value: `Original ${name}` } },
-                component: { class: 'SimpleInputComponent' },
-              })),
-            } },
+    for (const lateEdit of ['outside the group', 'inside the group', 'after a group replacement'] as const) {
+      it(`uses ordinary group sync for a late edit ${lateEdit} with closeOnSave=${closeOnSave}`, fakeAsync(async () => {
+        const { formComponent } = await createFormAndWaitForReady({
+          name: 'grouped-save',
+          componentDefinitions: [
+            {
+              name: 'contact',
+              model: { class: 'GroupModel' },
+              component: { class: 'GroupComponent', config: { componentDefinitions:
+                ['name', 'notes', 'obsolete'].map(name => ({
+                  name,
+                  model: { class: 'SimpleInputModel', config: { value: `Original ${name}` } },
+                  component: { class: 'SimpleInputComponent' },
+                })),
+              } },
+            },
+            ...['details', 'obsolete'].map(name => ({
+              name,
+              model: { class: 'SimpleInputModel' as const, config: { value: `Original ${name}` } },
+              component: { class: 'SimpleInputComponent' as const },
+            })),
+          ],
+        }, { oid: 'oid-123', editMode: true });
+        const contact = formComponent.form!.get('contact')!;
+        const name = contact.get('name')!;
+        const notes = contact.get('notes')!;
+        const details = formComponent.form!.get('details')!;
+        const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+        let finishSave!: (result: RecordActionResult) => void;
+        const update = spyOn(formComponent.recordService, 'update').and.returnValue(
+          new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
+        );
+        name.setValue('Sent name');
+        name.markAsDirty();
+
+        const saving = formComponent.saveForm(closeOnSave
+          ? { closeOnSave, redirectLocation: '/next', redirectDelaySeconds: 1 }
+          : { closeOnSave });
+        expect(update).toHaveBeenCalledTimes(1);
+        if (lateEdit === 'after a group replacement') {
+          contact.setValue({ name: 'Behaviour name', notes: 'Behaviour notes', obsolete: 'Original obsolete' });
+          contact.markAsDirty();
+          expect(name.pristine).toBeTrue();
+        }
+        const editedControl = lateEdit === 'outside the group' ? details : notes;
+        editedControl.setValue('Late edit');
+        editedControl.markAsDirty();
+
+        finishSave(RecordActionResult.fromResponse({ meta: {
+          outcome: 'saved', oid: 'oid-123',
+          metadata: {
+            contact: lateEdit === 'inside the group'
+              ? { name: 'Normalised name', notes: 'Original notes' }
+              : { name: 'Normalised name', notes: 'Original notes', obsolete: null },
           },
-          {
-            name: 'obsolete',
-            model: { class: 'SimpleInputModel', config: { value: 'Obsolete field' } },
-            component: { class: 'SimpleInputComponent' },
+        } }));
+        await saving;
+        if (closeOnSave) {
+          expect(formComponent.saveNavigationPending()).toBeTrue();
+          tick(1000);
+        }
+
+        expect(navigate).not.toHaveBeenCalled();
+        expect(formComponent.saveNavigationPending()).toBeFalse();
+        const expected = {
+          contact: {
+            name: lateEdit === 'outside the group' ? 'Normalised name'
+              : lateEdit === 'inside the group' ? 'Sent name' : 'Behaviour name',
+            notes: lateEdit === 'outside the group' ? 'Original notes' : 'Late edit',
+            obsolete: lateEdit === 'outside the group' ? null : 'Original obsolete',
           },
-        ],
-      }, { oid: 'oid-123', editMode: true });
-      const contact = formComponent.form!.get('contact')!;
-      const name = contact.get('name')!;
-      const notes = contact.get('notes')!;
-      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
-      let finishSave!: (result: RecordActionResult) => void;
-      const update = spyOn(formComponent.recordService, 'update').and.returnValue(
-        new Promise<RecordActionResult>(resolve => { finishSave = resolve; })
-      );
-      name.setValue('Sent name');
-      name.markAsDirty();
+          details: lateEdit === 'outside the group' ? 'Late edit' : 'Original details',
+          obsolete: 'Original obsolete',
+        };
+        expect(formComponent.form!.getRawValue()).toEqual(expected);
+        expect(editedControl.dirty).toBeTrue();
+        expectNavigationWarning(formComponent, true);
 
-      const saving = formComponent.saveForm(closeOnSave
-        ? { closeOnSave, redirectLocation: '/next', redirectDelaySeconds: 1 }
-        : { closeOnSave });
-      const editNotes = () => {
-        notes.setValue('Late notes');
-        notes.markAsDirty();
-      };
-      if (!closeOnSave) editNotes();
-      finishSave(RecordActionResult.fromResponse({ meta: {
-        outcome: 'saved', oid: 'oid-123',
-        metadata: { contact: { name: 'Normalised name', notes: 'Original notes' } },
-      } }));
-      await saving;
-      if (closeOnSave) {
-        expect(formComponent.saveNavigationPending()).toBeTrue();
-        editNotes();
-        tick(1000);
-      }
-
-      expect(navigate).not.toHaveBeenCalled();
-      expect(formComponent.saveNavigationPending()).toBeFalse();
-      expect(name.value).toBe('Normalised name');
-      expect(name.pristine).toBeTrue();
-      expect(notes.value).toBe('Late notes');
-      expect(notes.dirty).toBeTrue();
-      expect(contact.get('obsolete')?.value).toBeUndefined();
-      expect(formComponent.form!.get('obsolete')?.value).toBeUndefined();
-      expectNavigationWarning(formComponent, true);
-
-      const metadata = { contact: { name: 'Normalised name', notes: 'Late notes' } };
-      update.and.resolveTo(RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123', metadata } }));
-      await formComponent.saveForm();
-      expect(update).toHaveBeenCalledTimes(2);
-      expect(JSON.stringify(update.calls.mostRecent().args[1])).toBe(JSON.stringify(metadata));
-      expectNavigationWarning(formComponent, false);
-    }));
+        update.and.resolveTo(RecordActionResult.fromResponse({
+          meta: { outcome: 'saved', oid: 'oid-123', metadata: expected },
+        }));
+        await formComponent.saveForm();
+        expect(update).toHaveBeenCalledTimes(2);
+        expect(update.calls.mostRecent().args[1]).toEqual(expected);
+        expectNavigationWarning(formComponent, false);
+      }));
+    }
   }
 
   it('sends the created record tag on the next strict Save after a never-sync close is cancelled', fakeAsync(async () => {
@@ -1911,16 +1929,31 @@ describe('FormComponent', () => {
     http.expectNone(request => request.url.startsWith(`${url}/recordmeta/`));
   }));
 
-  it('leaves a clean form pristine when deletion fails without a conflict', async () => {
-    const { formComponent } = await createConcurrencyTestForm();
-    spyOn(formComponent.recordService, 'delete').and.resolveTo(retryFailureResponse('unknown'));
+  for (const action of ['delete', 'workflow'] as const) {
+    for (const outcome of ['unknown', 'not-saved'] as const) {
+      it(`leaves a clean form pristine after a ${action} failure with outcome ${outcome}`, async () => {
+        const { formComponent } = await createConcurrencyTestForm();
+        const response = retryFailureResponse(outcome);
+        const beforeAction = formComponent.form!.getRawValue();
 
-    await formComponent.deleteRecord({ closeOnDelete: true });
+        if (action === 'delete') {
+          const remove = spyOn(formComponent.recordService, 'delete').and.resolveTo(response);
+          await formComponent.deleteRecord({ closeOnDelete: true });
+          expect(remove).toHaveBeenCalledTimes(1);
+        } else {
+          const update = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+          await formComponent.saveForm({ force: true, targetStep: 'finalised', operation: 'submit' });
+          expect(update.calls.mostRecent().args.slice(2, 4)).toEqual(['finalised', 'submit']);
+        }
 
-    expect(formComponent.conflictState()).toBeNull();
-    expect(formComponent.form?.pristine).toBeTrue();
-    expectNavigationWarning(formComponent, false);
-  });
+        expect(formComponent.conflictState()).toBeNull();
+        expect(formComponent.form!.getRawValue()).toEqual(beforeAction);
+        expect(formComponent.form!.pristine).toBeTrue();
+        expect(formComponent.form!.get('title')!.pristine).toBeTrue();
+        expectNavigationWarning(formComponent, false);
+      });
+    }
+  }
 
   it('warns after a failed delete and suppresses the warning on the confirmed delete redirect', fakeAsync(async () => {
     const { formComponent } = await createConcurrencyTestForm();
@@ -1942,8 +1975,45 @@ describe('FormComponent', () => {
     expectNavigationWarning(formComponent, true);
     tick(1000);
     expect(navigate).toHaveBeenCalledOnceWith('/dashboard');
-    expectNavigationWarning(formComponent, false);
+    expectNavigationWarning(formComponent, true);
   }));
+
+  for (const redirectLocation of ['#notes', `${window.location.href.split('#')[0]}#notes`]) {
+    it(`falls back to the dashboard for a same-document delete redirect to ${redirectLocation}`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      formComponent.recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+      spyOn(formComponent.recordService, 'delete').and.resolveTo(
+        RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123' } })
+      );
+      formComponent.form!.get('title')!.markAsDirty();
+
+      await formComponent.deleteRecord({ closeOnDelete: true, redirectLocation, redirectDelaySeconds: 0 });
+      expectNavigationWarning(formComponent, true);
+      tick(0);
+
+      expect(navigate).toHaveBeenCalledOnceWith('http://localhost/default/rdmp/dashboard/rdmp');
+      expectNavigationWarning(formComponent, false);
+    }));
+  }
+
+  for (const eventType of ['hashchange', 'popstate']) {
+    it(`restores the warning if a delete redirect keeps the document alive and fires ${eventType}`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm();
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref')
+        .and.callFake(() => window.dispatchEvent(new Event(eventType)));
+      spyOn(formComponent.recordService, 'delete').and.resolveTo(
+        RecordActionResult.fromResponse({ meta: { outcome: 'saved', oid: 'oid-123' } })
+      );
+      formComponent.form!.get('title')!.markAsDirty();
+
+      await formComponent.deleteRecord({ closeOnDelete: true, redirectLocation: '/dashboard', redirectDelaySeconds: 0 });
+      tick(0);
+
+      expect(navigate).toHaveBeenCalledOnceWith('/dashboard');
+      expectNavigationWarning(formComponent, true);
+    }));
+  }
 
   it('opens the record type dashboard when Back after deletion would only change the fragment', fakeAsync(async () => {
     const { fixture, formComponent } = await createConcurrencyTestForm();

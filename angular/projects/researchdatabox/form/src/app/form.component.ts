@@ -1847,7 +1847,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               if (syncMetadata && canSyncMetadata) {
                 if (syncMode !== 'never') {
                   const syncResult = await this.serverSyncService.applyServerMetadata(
-                    currentFormValue, metadata, formDefMap, form, syncMode, 'saved'
+                    currentFormValue, metadata, formDefMap, form, syncMode
                   );
                   if (!ownsSave()) return false;
                   if (this.serverSyncRequiresReview(syncResult)) {
@@ -2649,6 +2649,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
   }
 
+  @HostListener('window:hashchange')
+  @HostListener('window:popstate')
+  public clearDeleteNavigationBypass(): void {
+    this.deleteNavigationStarted = false;
+  }
+
   /** Native navigation warning for unsaved edits and unresolved conflict work. */
   @HostListener('window:beforeunload', ['$event'])
   public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
@@ -2656,7 +2662,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (this.deleteNavigationStarted) return undefined;
+    if (this.deleteNavigationStarted) {
+      this.clearDeleteNavigationBypass();
+      return undefined;
+    }
     if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
       return undefined;
     }
@@ -2792,15 +2801,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   /**
-   * Apply only field-addressable server problems to controls.  Form-level and
-   * uncertain problems still make the form dirty, but never mark every field
-   * dirty as though each one had failed validation.
+   * Attach server validation errors without creating dirty state on a clean
+   * form. Preserve the dirty state needed to retry edits or review a conflict.
    */
   private applyServerSaveProblems(response: Partial<RecordSaveResult> | null | undefined): void {
     if (!this.form) {
       return;
     }
 
+    const keepDirty = this.hasUnconfirmedSaveEdits || this.hasChangesToSave() || !!this.formConflictState();
     const problems = Array.isArray(response?.problems) ? response.problems : [];
     let firstMappedCandidate: ServerControlCandidate | null = null;
     const formLevelErrors: Record<string, unknown> = {};
@@ -2826,7 +2835,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           ...existingErrors,
           [`server#${issueIndex}`]: this.serverIssueError(issue),
         });
-        resolved.control.markAsDirty();
+        if (keepDirty) resolved.control.markAsDirty();
         resolved.control.markAsTouched();
         issueIndex++;
       }
@@ -2834,7 +2843,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // The submitted controls are pristine. Keep a retry available even
     // when the only dirty child is a related display control.
     if (this.hasUnconfirmedSaveEdits) this.localDirtyRequestControls.add(this.form);
-    this.form.markAsDirty();
+    if (keepDirty) this.form.markAsDirty();
     if (Object.keys(formLevelErrors).length > 0) {
       this.form.setErrors({ ...(this.form.errors ?? {}), ...formLevelErrors }, { emitEvent: false });
     }
@@ -3053,7 +3062,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
       if (!response.wasPersisted()) {
         this.captureConflictResponse(response, requestBaseline);
-        if (this.formConflictState() || this.hasChangesToSave()) this.applyServerSaveProblems(response);
+        this.applyServerSaveProblems(response);
         const responseMessage = String(_get(response, 'message') ?? '');
         const errorMessage = responseMessage.startsWith('@') ? responseMessage : '@dmpt-form-delete-failed';
 
@@ -3129,12 +3138,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const currentEntry = navigation?.currentEntry;
         const previousEntry = currentEntry && navigation?.entries()[currentEntry.index - 1];
         const goBack = !redirectLocation && navigation?.canGoBack && previousEntry?.sameDocument === false;
-        this.deleteNavigationStarted = true;
         if (goBack) {
+          this.deleteNavigationStarted = true;
           this.locationService.historyGo(-1);
         } else {
+          const currentUrl = this.window?.location.href;
+          const sameDocument = redirectLocation?.startsWith('#') || (
+            redirectLocation?.includes('#') && currentUrl &&
+            new URL(redirectLocation, this.document.baseURI).href.split('#')[0] === currentUrl.split('#')[0]
+          );
           const recordType = encodeURIComponent(this.trimmedParams.recordType());
-          this.changeLocationHref(redirectLocation || `${this.recordService.brandingAndPortalUrl}/dashboard/${recordType}`);
+          const dashboard = `${this.recordService.brandingAndPortalUrl}/dashboard/${recordType}`;
+          this.deleteNavigationStarted = true;
+          this.changeLocationHref(redirectLocation && !sameDocument ? redirectLocation : dashboard);
         }
         return;
       }
