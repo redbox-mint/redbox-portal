@@ -918,21 +918,21 @@ export namespace Controllers {
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
-          let savedRowProofs: ReturnType<FormRowSave['savedRowProofs']> | undefined;
+          let confirmation: ReturnType<FormRowSave['savedConfirmation']> | undefined;
           if (rows) {
             try {
               const saved = await this.recordsService.getMeta(oid);
-              savedRowProofs = rows.savedRowProofs(expected!, saved?.metadata ?? {});
+              confirmation = rows.savedConfirmation(expected!, saved?.metadata ?? {});
             } catch (error) {
               sails.log.warn('RecordController - Could not confirm repeatable rows after save', error);
-              savedRowProofs = {};
+              confirmation = { confirmedListPaths: [], savedRowProofs: {} };
             }
           }
           return this.sendResp(req, res, {
             // The saved record can contain metadata that was excluded from this user's form.
             data: formSave ? { redboxOid: oid } : await this.recordsService.getMeta(oid),
-            meta: { ...response, ...(savedRowProofs ? { savedRowProofs } : {}) },
-            v1: savedRowProofs ? { ...response, savedRowProofs } : response,
+            meta: { ...response, ...confirmation },
+            v1: confirmation ? { ...response, ...confirmation } : response,
           });
         } else {
           return this.sendResp(req, res, {

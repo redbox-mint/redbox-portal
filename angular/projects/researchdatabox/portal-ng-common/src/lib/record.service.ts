@@ -694,6 +694,7 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult {
+  confirmedListPaths?: string[];
   savedRowProofs?: FormRowProofs;
   success: boolean = false;
   oid: string = '';

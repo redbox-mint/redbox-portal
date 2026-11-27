@@ -52,7 +52,7 @@ export class BehaviourHandler {
   private isProcessingFormReadyExecution = false;
   private pendingMetadataLoads = 0;
   private queuedMetadataLoad = false;
-  private pendingSelection?: { oid: string; fieldId?: string };
+  private pendingSelection?: { oid: string; fieldId?: string; conditionFailed: boolean };
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -148,7 +148,7 @@ export class BehaviourHandler {
       : canMatchJSONataEvent(event, this.behaviour);
   }
 
-  private trackSelection(event: FormComponentEvent): typeof this.pendingSelection {
+  private trackSelection(event: FormComponentEvent, conditionFailed = false): typeof this.pendingSelection {
     if (event.type !== FormComponentEventType.FIELD_VALUE_CHANGED) return undefined;
     const oid = selectedRecordOid(event.value);
     const pending = this.pendingSelection;
@@ -157,23 +157,36 @@ export class BehaviourHandler {
       if (sameField) this.pendingSelection = undefined;
       return undefined;
     }
-    if (sameField && pending.oid === oid) return pending;
+    if (sameField && pending.oid === oid) {
+      if (!conditionFailed) pending.conditionFailed = false;
+      return pending;
+    }
     if (oid !== selectedRecordOid(event.previousValue)) {
-      return this.pendingSelection = { oid, fieldId: event.fieldId };
+      return this.pendingSelection = { oid, fieldId: event.fieldId, conditionFailed };
     }
     return undefined;
   }
 
-  private matches(event: FormComponentEvent): Promise<boolean> {
-    return matchBehaviourCondition(
-      this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
-        behaviourIndex: this.behaviourIndex,
-        getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
-        formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
-        requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
-        querySource: this.getEventQuerySource(event),
+  private async matches(event: FormComponentEvent): Promise<boolean> {
+    try {
+      const matched = await matchBehaviourCondition(
+        this.behaviour.condition, this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer, event, this.behaviour, {
+          behaviourIndex: this.behaviourIndex,
+          getCompiledTemplateEvaluator: () => this.getCompiledTemplateEvaluator(),
+          formValue: (this.ctx.formComponent.form?.value ?? {}) as Record<string, unknown>,
+          requestParams: (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>,
+          querySource: this.getEventQuerySource(event),
+        }
+      );
+      if (!matched && event.type === FormComponentEventType.FIELD_VALUE_CHANGED &&
+          this.pendingSelection?.conditionFailed && this.pendingSelection.fieldId === event.fieldId) {
+        this.pendingSelection = undefined;
       }
-    );
+      return matched;
+    } catch (error) {
+      if (this.fetchesMetadata()) this.trackSelection(event, true);
+      throw error;
+    }
   }
 
   /**

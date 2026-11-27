@@ -1940,6 +1940,70 @@ describe('FormComponent', () => {
     });
   }
 
+  for (const debounceMs of [0, 25]) {
+    it(`keeps a failed fetch condition retryable with debounceMs=${debounceMs}`, async () => {
+      const { config, assets } = creatorImportConfig([{ name: 'Old creator' }]);
+      const condition = "event.fieldId = '/dataRecord'";
+      Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs });
+      const evaluate = assets.entries[0].callable;
+      let failCondition = true;
+      let conditionMatches = true;
+      assets.entries[0].callable = (key, path, context) => {
+        if (path.at(-1) !== 'condition') return evaluate(key, path, context);
+        if (context.event.fieldId === '/dataRecord' && failCondition) throw new Error('Temporary fetch condition failure');
+        return jsonataCompileAndEvaluate(conditionMatches ? condition : 'false', context);
+      };
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+        oid: 'publication', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+      }, undefined, assets);
+      const path = '["creators"]';
+      formComponent.formDefMap!.formConfigMeta = {
+        oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['old'] },
+      };
+      const fetch = spyOn(formComponent.recordService, 'getRecordMeta').and.resolveTo({
+        contributor_ci: [{ family_name: 'New creator' }],
+      });
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['saved'] },
+      });
+      const bus = TestBed.inject(FormComponentEventBus);
+      const select = async (previousValue: string, oid = 'new-source') => {
+        fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
+          fieldId: '/dataRecord', sourceId: '*', value: { oid }, previousValue: { oid: previousValue },
+        })));
+        await fixture.whenStable();
+      };
+
+      await select('old-source');
+      expect(fetch).not.toHaveBeenCalled();
+      await formComponent.saveForm({ force: true });
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).not.toHaveBeenCalled();
+
+      failCondition = false;
+      await select('new-source');
+      await formComponent.saveForm({ force: true, targetStep: 'review' });
+      expect(update).toHaveBeenCalledOnceWith(
+        'publication', { creators: [{ name: 'New creator' }] }, 'review',
+        { formSave: true, rowEdits: { [path]: [null] } },
+      );
+
+      failCondition = true;
+      await select('new-source', 'other-source');
+      await formComponent.saveForm({ force: true });
+      expect(update).toHaveBeenCalledTimes(1);
+      failCondition = false;
+      conditionMatches = false;
+      await select('other-source', 'other-source');
+      await formComponent.saveForm({ force: true });
+      expect(fetch).toHaveBeenCalledOnceWith('new-source');
+      expect(update.calls.argsFor(1)).toEqual([
+        'publication', { creators: [{ name: 'New creator' }] }, '',
+        { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'saved' }] } },
+      ]);
+    });
+  }
+
   it('releases a rejected debounced metadata condition without creating a pending import', async () => {
     const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);
     const condition = "event.fieldId = '/dataRecord'";
@@ -2182,54 +2246,61 @@ describe('FormComponent', () => {
     });
   }
 
-  it('keeps replacement and descendant lists in the same tracking mode across saves', async () => {
-    const config: FormConfigFrame = {
-      name: 'publication-draft',
-      componentDefinitions: [
-        { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
-        contributorList([{ name: 'Old creator', notes: [{ name: 'Old note' }] }], false, [
-          { ...contributorList([]), name: 'notes' },
-        ]),
-        { ...contributorList([{ name: 'Reviewer' }]), name: 'reviewers' },
-      ],
-    };
-    const { formComponent } = await createFormAndWaitForReady(config, {
-      oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
-    });
-    const rowProofs = { '["creators"]': ['creator'], '["creators",0,"notes"]': ['note'], '["reviewers"]': ['reviewer'] };
-    formComponent.formDefMap!.formConfigMeta = {
-      oid: 'publication', rowProofs, editableRowPaths: ['["creators"]', '["creators",null,"notes"]', '["reviewers"]'],
-    };
-    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null, savedRowProofs: rowProofs,
-    });
-    await formComponent.saveForm({ force: true });
-    expect(update.calls.argsFor(0)[3]).toEqual({ formSave: true, rowEdits: {
-      '["creators"]': [{ source: 0, proof: 'creator' }],
-      '["creators",0,"notes"]': [{ source: 0, proof: 'note' }],
-      '["reviewers"]': [{ source: 0, proof: 'reviewer' }],
-    } });
-    update.calls.reset();
-
-    const parent = formComponent.getComponentDefByName('creators')?.component as RepeatableComponent;
-    const creators = [{ name: 'New creator', notes: [{ name: 'New note' }] }];
-    await parent.replaceAllElements(creators);
-    expect(formComponent.form!.get('creators')?.value).toEqual(creators);
-    update.and.resolveTo({
-      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { '["reviewers"]': ['reviewer'] },
-    });
-    const title = formComponent.form!.get('title')!;
-    for (const value of ['First edit', 'Second edit']) {
-      title.setValue(value);
+  for (const confirmed of [true, false]) {
+    it(`${confirmed ? 'resends a confirmed' : 'omits an unconfirmed'} replacement with nested lists on the next save`, async () => {
+      const config: FormConfigFrame = {
+        name: 'publication-draft',
+        componentDefinitions: [
+          { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft' } }, component: { class: 'SimpleInputComponent' } },
+          contributorList([{ name: 'Old creator', notes: [{ name: 'Old note' }] }], false, [
+            { ...contributorList([]), name: 'notes' },
+          ]),
+          { ...contributorList([{ name: 'Reviewer' }]), name: 'reviewers' },
+        ],
+      };
+      const { formComponent } = await createFormAndWaitForReady(config, {
+        oid: 'publication', editMode: true, formName: '', recordType: 'dataPublication', downloadAndCreateOnInit: false,
+      });
+      const rowProofs = { '["creators"]': ['creator'], '["creators",0,"notes"]': ['note'], '["reviewers"]': ['reviewer'] };
+      formComponent.formDefMap!.formConfigMeta = {
+        oid: 'publication', rowProofs, editableRowPaths: ['["creators"]', '["creators",null,"notes"]', '["reviewers"]'],
+      };
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: rowProofs,
+      });
       await formComponent.saveForm({ force: true });
-    }
-    const options = { formSave: true, rowEdits: { '["reviewers"]': [{ source: 0, proof: 'reviewer' }] } };
-    const reviewers = [{ name: 'Reviewer' }];
-    expect(update.calls.allArgs()).toEqual([
-      ['publication', { title: 'First edit', creators, reviewers }, '', options],
-      ['publication', { title: 'Second edit', creators, reviewers }, '', options],
-    ]);
-  });
+      expect(update.calls.argsFor(0)[3]).toEqual({ formSave: true, rowEdits: {
+        '["creators"]': [{ source: 0, proof: 'creator' }],
+        '["creators",0,"notes"]': [{ source: 0, proof: 'note' }],
+        '["reviewers"]': [{ source: 0, proof: 'reviewer' }],
+      } });
+      update.calls.reset();
+
+      const parent = formComponent.getComponentDefByName('creators')?.component as RepeatableComponent;
+      const creators = [{ name: 'New creator', notes: [{ name: 'New note' }] }];
+      await parent.replaceAllElements(creators);
+      expect(formComponent.form!.get('creators')?.value).toEqual(creators);
+      update.and.resolveTo({
+        success: true, oid: 'publication', message: '', data: null, savedRowProofs: { '["reviewers"]': ['reviewer'] },
+        confirmedListPaths: confirmed ? ['["creators"]'] : [],
+      });
+      const title = formComponent.form!.get('title')!;
+      for (const value of ['First edit', 'Second edit']) {
+        title.setValue(value);
+        await formComponent.saveForm({ force: true });
+      }
+      const options = { formSave: true, rowEdits: { '["reviewers"]': [{ source: 0, proof: 'reviewer' }] } };
+      const reviewers = [{ name: 'Reviewer' }];
+      expect(update.calls.allArgs()).toEqual([
+        ['publication', { title: 'First edit', creators, reviewers }, '', options],
+        ['publication', { title: 'Second edit', ...(confirmed ? { creators } : {}), reviewers }, '', options],
+      ]);
+
+      formComponent.form!.get(['creators', 0, 'notes', 0, 'name'])!.setValue('An explicit edit');
+      await formComponent.saveForm({ force: true });
+      expect(update).toHaveBeenCalledTimes(confirmed ? 3 : 2);
+    });
+  }
 
   it('serializes a title edit with hydrated repeatables and disabled children', async () => {
     const textField = (name: string, value?: string): Field => ({

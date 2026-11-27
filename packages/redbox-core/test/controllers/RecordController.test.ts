@@ -723,6 +723,48 @@ describe('RecordController update', () => {
     expect(response.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({ '["contributors"]': [form.proofs['["contributors"]'][0]] });
   });
 
+  it('confirms list values independently of row proofs and preserves a hook change on a title save', async () => {
+    const selector: FormConfigFrame = {
+      ...formConfig,
+      componentDefinitions: [...formConfig.componentDefinitions!, {
+        name: 'dataLocations',
+        model: { class: 'PublishDataLocationSelectorModel' },
+        component: { class: 'PublishDataLocationSelectorComponent' },
+      }],
+    };
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({
+      id: 'form-1', name: 'publication-draft', branding: 'brand-1', configuration: selector,
+    }));
+    const original = { type: 'url', location: 'https://example.test/original' };
+    const addedByHook = { type: 'url', location: 'https://example.test/hook' };
+    const read = controller.recordsService.getMeta as sinon.SinonStub;
+    read.resolves({ ...currentRecord, metadata: { ...currentRecord.metadata, dataLocations: [original] } });
+    let runHook = true;
+    updateMeta.callsFake(async (...args) => {
+      const metadata = runHook ? { ...args[7], dataLocations: [addedByHook] } : args[7];
+      read.resolves({ ...currentRecord, metadata });
+      return { success: true, isSuccessful: () => true };
+    });
+
+    const response = makeResponse();
+    await controller.update(await rowSaveRequest({ dataLocations: [], keywords: ['Rebuilt'] }, {}), response.res);
+    expect(updateMeta.lastCall.args[7].dataLocations).to.deep.equal([]);
+    expect(response.json.firstCall.args[0].meta.confirmedListPaths).to.deep.equal(['["keywords"]']);
+    expect(response.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({});
+
+    runHook = false;
+    await controller.update(makeRequest({ title: 'New title' }, { formSave: 'true', apiVersion: '2.0' }), makeResponse().res);
+    expect(updateMeta.lastCall.args[7]).to.include({ title: 'New title' });
+    expect(updateMeta.lastCall.args[7].dataLocations).to.deep.equal([addedByHook]);
+    expect(updateMeta.lastCall.args[7].keywords).to.deep.equal(['Rebuilt']);
+
+    const cleared = makeResponse();
+    await controller.update(await rowSaveRequest({ dataLocations: [] }, {}), cleared.res);
+    expect(updateMeta.lastCall.args[7].dataLocations).to.deep.equal([]);
+    expect(cleared.json.firstCall.args[0].meta.confirmedListPaths).to.deep.equal(['["dataLocations"]']);
+    expect(cleared.json.firstCall.args[0].meta.savedRowProofs).to.deep.equal({});
+  });
+
   it('rejects out-of-range and reused row positions before writing', async () => {
     for (const positions of [[{ retain: 99 }, 1], [{ retain: 1 }, 1]]) {
       const { res, status } = makeResponse();

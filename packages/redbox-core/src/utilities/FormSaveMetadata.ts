@@ -64,7 +64,8 @@ export function loadedFormRowProofs(metadata: Metadata, schema: FieldSchema, sig
 }
 
 export class FormRowSave {
-  private readonly applied = new Map<string, Path>();
+  private readonly applied = new Set<string>();
+  private readonly lists = new Map<string, Path>();
 
   constructor(private readonly rowEdits: Record<string, unknown>, private readonly sign: SignRow) {}
 
@@ -87,21 +88,28 @@ export class FormRowSave {
       used.add(source);
       return { source, retain: retain === true };
     });
-    this.applied.set(key, path);
+    this.applied.add(key);
     return result;
   }
 
-  savedRowProofs(expected: Metadata, saved: Metadata): FormRowProofs {
-    const proofs: FormRowProofs = {};
-    for (const [key, path] of this.applied) {
+  confirmList(path: Path): void {
+    this.lists.set(JSON.stringify(path), path);
+  }
+
+  savedConfirmation(expected: Metadata, saved: Metadata) {
+    const confirmedListPaths: string[] = [];
+    const savedRowProofs: FormRowProofs = {};
+    for (const [key, path] of this.lists) {
       // A hook which changes a parent list can also invalidate its children's positions.
-      const lists = path.flatMap((part, index) => typeof part === 'number' ? [path.slice(0, index)] : []);
-      if ([...lists, path].every(list => _.isEqual(_.get(expected, list), _.get(saved, list)))) {
+      const ancestors = path.flatMap((part, index) => typeof part === 'number' ? [path.slice(0, index)] : []);
+      if (![...ancestors, path].every(list => _.isEqual(_.get(expected, list), _.get(saved, list)))) continue;
+      confirmedListPaths.push(key);
+      if (this.applied.has(key)) {
         const rows = _.get(saved, path) as unknown;
-        proofs[key] = Array.isArray(rows) ? rows.map((row, index) => this.sign(path, index, row)) : [];
+        savedRowProofs[key] = Array.isArray(rows) ? rows.map((row, index) => this.sign(path, index, row)) : [];
       }
     }
-    return proofs;
+    return { confirmedListPaths, savedRowProofs };
   }
 }
 
@@ -236,6 +244,7 @@ function mergeRows(previous: unknown[], changed: unknown[], element: FieldSchema
 }
 
 function mergeValue(previous: unknown, changed: unknown, schema: FieldSchema, rows?: FormRowSave, path: Path = []): unknown {
+  if (Array.isArray(changed) || (schema.elements && changed === null)) rows?.confirmList(path);
   if (schema.retainExistingRowsOnly) {
     if (!Array.isArray(changed)) return previous;
     const stored = Array.isArray(previous) ? previous : [];

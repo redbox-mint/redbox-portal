@@ -255,6 +255,46 @@ describe("PublishDataLocationSelectorComponent", () => {
     }
   });
 
+  it("requires a reload to edit unconfirmed locations while allowing title saves", async () => {
+    const location = { type: "url" as const, location: "https://example.com", selected: true };
+    const path = '["dataLocations"]';
+    const { formComponent } = await createFormAndWaitForReady({
+      name: "publication",
+      componentDefinitions: [{
+        name: "title",
+        component: { class: "SimpleInputComponent" },
+        model: { class: "SimpleInputModel", config: { value: "Draft" } },
+      }, {
+        name: "dataLocations",
+        component: { class: "PublishDataLocationSelectorComponent" },
+        model: { class: "PublishDataLocationSelectorModel", config: { value: [location] } },
+      }],
+    }, { oid: "publication", editMode: true, formName: "", recordType: "dataPublication", downloadAndCreateOnInit: false });
+    formComponent.formDefMap!.formConfigMeta = { oid: "publication", editableRowPaths: [path], rowProofs: {} };
+    const update = spyOn(formComponent.recordService, "update").and.resolveTo({
+      success: true, oid: "publication", message: "", data: null, confirmedListPaths: [path], savedRowProofs: {},
+    });
+    const options = { formSave: true, rowEdits: {} };
+    const locations = formComponent.form!.get("dataLocations")!;
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(0)).toEqual(["publication", { title: "Draft", dataLocations: [location] }, "", options]);
+
+    locations.setValue([]);
+    update.and.resolveTo({
+      success: true, oid: "publication", message: "", data: null, confirmedListPaths: [], savedRowProofs: {},
+    });
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(1)).toEqual(["publication", { title: "Draft", dataLocations: [] }, "", options]);
+
+    formComponent.form!.get("title")!.setValue("Updated title");
+    await formComponent.saveForm({ force: true });
+    expect(update.calls.argsFor(2)).toEqual(["publication", { title: "Updated title" }, "", { formSave: true }]);
+
+    locations.setValue([location]);
+    await formComponent.saveForm({ force: true });
+    expect(update).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps pending publication notes available until they are applied before creating", async () => {
     const location = { type: "url" as const, location: "https://example.com", notes: "Stored note", selected: true };
     const { fixture, formComponent } = await createFormAndWaitForReady({

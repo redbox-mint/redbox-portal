@@ -5,12 +5,12 @@ import type { FormRowEdit, FormRowEdits, FormRowProofs } from '@researchdatabox/
 type Path = (string | number)[];
 type RowSource = { array: FormArray; index: number; proof?: string };
 type ReadOnlyRows = { renderedCount: () => number; loaded: boolean };
-type ArraySnapshot = { controls: AbstractControl[]; value: unknown };
+type ListSnapshot = { controls?: AbstractControl[]; value: unknown };
 
 export class FormSaveRows {
   private readonly bound = new WeakSet<FormGroup>();
   private readonly origins = new WeakMap<AbstractControl, RowSource>();
-  private readonly unconfirmed = new WeakMap<FormArray, ArraySnapshot>();
+  private readonly unconfirmed = new WeakMap<AbstractControl, ListSnapshot>();
   private readonly rebuilt = new WeakSet<FormArray>();
   private readonly imported = new WeakMap<FormArray, () => boolean>();
   private readonly readOnlyRows = new WeakMap<FormArray, ReadOnlyRows>();
@@ -105,11 +105,11 @@ export class FormSaveRows {
     const allowedLists = editableRowPaths && new Set(editableRowPaths);
     if (form && proofs) this.bindProofs(form, proofs);
     const rowEdits: FormRowEdits = {};
-    const arrays: {
+    const lists: {
       key: string;
-      array: FormArray;
-      rows: AbstractControl[];
-      submitted: ArraySnapshot;
+      control: AbstractControl;
+      rows?: AbstractControl[];
+      submitted: ListSnapshot;
       imported?: () => boolean;
     }[] = [];
 
@@ -117,6 +117,17 @@ export class FormSaveRows {
     const visit = (control: AbstractControl, path: Path, fromStorage: boolean, trackBranch: boolean, root = false): unknown => {
       if (!root && (!included(control) || (control.disabled && !(trackRows &&
         (control instanceof FormGroup || control instanceof FormArray))))) {
+        return omitted;
+      }
+      const unconfirmed = this.unconfirmed.get(control);
+      if (unconfirmed) {
+        // A hook may have saved a different list. Omit the old display when saving other fields.
+        const changedRows = control instanceof FormArray && (this.imported.has(control) ||
+          unconfirmed.controls?.length !== control.length ||
+          unconfirmed.controls?.some((row, index) => row !== control.at(index)));
+        if (updating && (changedRows || !isEqual(unconfirmed.value, control.getRawValue()))) {
+          throw new Error('Reload the form before saving changes to a list the server could not confirm.');
+        }
         return omitted;
       }
       if (control instanceof FormGroup) {
@@ -128,22 +139,18 @@ export class FormSaveRows {
         // repeatable edits below it, but omit a disabled group with no edits to send.
         return control.disabled && !children.length && !root ? omitted : Object.fromEntries(children);
       }
-      if (!(control instanceof FormArray)) return control.value;
+      const key = JSON.stringify(path);
       const schemaPath = JSON.stringify(path.map(part => typeof part === 'number' ? null : part));
+      if (!(control instanceof FormArray)) {
+        const value = control.value;
+        if (trackBranch && (Array.isArray(value) || (value === null && allowedLists?.has(schemaPath)))) {
+          lists.push({ key, control, submitted: { value: structuredClone(value) } });
+        }
+        return value;
+      }
       if (allowedLists && !allowedLists.has(schemaPath)) return omitted;
 
       const imported = this.imported.get(control);
-      const unconfirmed = this.unconfirmed.get(control);
-      if (unconfirmed) {
-        // A hook may have saved different rows. Omit the old display when saving other fields.
-        if (updating && (imported || unconfirmed.controls.length !== control.length ||
-          unconfirmed.controls.some((row, index) => row !== control.at(index)) ||
-          !isEqual(unconfirmed.value, control.getRawValue()))) {
-          throw new Error('Reload the form before saving changes to a repeatable list the server could not confirm.');
-        }
-        return omitted;
-      }
-
       // The server uses the ordinary merge below a list without row edits.
       const trackArray = trackBranch && !this.rebuilt.has(control);
       const readOnlyRows = this.readOnlyRows.has(control);
@@ -173,11 +180,11 @@ export class FormSaveRows {
         edits.push(origin?.proof ? { source: origin.index, proof: origin.proof, ...(retain ? { retain: true } : {}) } : null);
         values.push(retain ? null : value);
       }
-      if (trackArray) {
-        const key = JSON.stringify(path);
-        rowEdits[key] = edits;
-        arrays.push({
-          key, array: control, rows, imported,
+      if (trackArray) rowEdits[key] = edits;
+      // The outer list's confirmation covers descendants that use the ordinary merge.
+      if (trackBranch) {
+        lists.push({
+          key, control, rows: trackArray ? rows : undefined, imported,
           submitted: { controls: [...control.controls], value: structuredClone(control.getRawValue()) },
         });
       }
@@ -188,14 +195,18 @@ export class FormSaveRows {
     return {
       metadata,
       rowEdits,
-      markSaved: (savedProofs?: FormRowProofs) => {
-        for (const { key, array, rows, submitted, imported } of arrays) {
-          if (imported === this.imported.get(array)) this.imported.delete(array);
+      hasLists: lists.length > 0,
+      markSaved: (savedProofs?: FormRowProofs, confirmedListPaths?: string[]) => {
+        const confirmed = new Set(confirmedListPaths);
+        for (const { key, control, rows, submitted, imported } of lists) {
+          if (control instanceof FormArray && imported === this.imported.get(control)) this.imported.delete(control);
           const proofs = savedProofs?.[key];
-          if (proofs === undefined) {
-            this.unconfirmed.set(array, submitted);
+          if (rows ? proofs === undefined : !confirmed.has(key)) {
+            this.unconfirmed.set(control, submitted);
             continue;
           }
+          if (!(control instanceof FormArray) || !rows || !proofs) continue;
+          const array = control;
           const readOnly = this.readOnlyRows.get(array);
           if (readOnly && !rows.length && !proofs.length) readOnly.loaded = false;
           rows.forEach((row, index) => {

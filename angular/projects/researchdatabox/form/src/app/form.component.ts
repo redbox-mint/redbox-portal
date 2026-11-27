@@ -1329,11 +1329,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             response = await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, {
               formSave: true,
               ...(formName ? { formName } : {}),
-              ...(!Object.keys(submitted.rowEdits).length ? {} : { rowEdits: submitted.rowEdits }),
+              ...(submitted.hasLists ? { rowEdits: submitted.rowEdits } : {}),
             });
           }
           if (response?.success) {
-            submitted.markSaved(response.savedRowProofs);
+            submitted.markSaved(response.savedRowProofs, response.confirmedListPaths);
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
             let createdEditPath: string | undefined;
             if (creating && response.oid) {
