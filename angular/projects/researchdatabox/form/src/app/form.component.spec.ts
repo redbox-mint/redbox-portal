@@ -2080,8 +2080,9 @@ describe('FormComponent', () => {
   }
 
   for (const debounceMs of [0, 50]) {
-    const setupSelectionRace = async (withCitation = false) => {
+    const setupSelectionRace = async (withCitation = false, canSort = false) => {
       const { config, assets } = creatorImportConfig([{ name: 'Original creator' }]);
+      Object.assign(config.componentDefinitions![0].component!.config!, { canSort });
       const condition = "event.fieldId = '/dataRecord'";
       Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs });
       config.componentDefinitions!.push({
@@ -2240,12 +2241,15 @@ describe('FormComponent', () => {
       });
     }
 
-    it(`saves creators in displayed order when a manual row finishes before an import with debounceMs=${debounceMs}`, async () => {
-      const { fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
-      fetch.withArgs('source-a').and.resolveTo({ contributor_ci: [{ family_name: 'Imported' }] });
+    it(`blocks row actions during import and saves the displayed creator order with debounceMs=${debounceMs}`, async () => {
+      const { fixture, formComponent, path, select, fetch, update } = await setupSelectionRace(false, true);
+      fetch.withArgs('source-a').and.resolveTo({
+        contributor_ci: [{ family_name: 'Imported A' }, { family_name: 'Imported B' }],
+      });
+      const proofs = ['imported-a', 'imported-b', 'manual-a', 'manual-b'];
       update.and.resolveTo({
         success: true, oid: 'publication', message: '', data: null,
-        savedRowProofs: { [path]: ['imported', 'manual'] },
+        savedRowProofs: { [path]: proofs },
       });
       const initialize = FormBaseWrapperComponent.prototype.initWrapperComponent;
       let finishImport!: () => void;
@@ -2256,7 +2260,7 @@ describe('FormComponent', () => {
         this: FormBaseWrapperComponent<unknown>, entry, omitLayout
       ) {
         const component = await initialize.call(this, entry, omitLayout);
-        if ((entry?.model?.initValue as { name?: string })?.name === 'Imported') {
+        if ((entry?.model?.initValue as { name?: string })?.name === 'Imported B') {
           notifyHeld();
           await resumeImport;
         }
@@ -2266,24 +2270,36 @@ describe('FormComponent', () => {
       select('source-a');
       await rowHeld;
       const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+      const rowButtons = (action: string): HTMLButtonElement[] =>
+        Array.from(fixture.nativeElement.querySelectorAll(`.rb-form-repeatable-item__${action}`));
       try {
-        await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual' }));
-        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Original creator' }, { name: 'Manual' }]);
+        await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual A' }));
+        await fixture.ngZone!.run(() => repeatable.appendNewElement({ name: 'Manual B' }));
+        fixture.detectChanges();
+        expect(rowButtons('remove').length).toBeGreaterThan(0);
+        expect(rowButtons('move-down').length).toBeGreaterThan(0);
+        expect([...rowButtons('remove'), ...rowButtons('move-down')].every(button => button.disabled)).toBeTrue();
+        expect(formComponent.form!.get('creators')?.value).toEqual(
+          ['Original creator', 'Manual A', 'Manual B'].map(name => ({ name }))
+        );
       } finally {
         fixture.ngZone!.run(finishImport);
       }
       await fixture.whenStable();
+      fixture.detectChanges();
 
-      const creators = [{ name: 'Imported' }, { name: 'Manual' }];
+      expect(rowButtons('remove').some(button => !button.disabled)).toBeTrue();
+      expect(rowButtons('move-down').some(button => !button.disabled)).toBeTrue();
+      const creators = ['Imported A', 'Imported B', 'Manual A', 'Manual B'].map(name => ({ name }));
       expect(repeatable.formFieldCompMapEntries.map(entry => entry.model?.formControl?.value)).toEqual(creators);
       const metadata = { creators, dataRecord: { oid: 'source-a' } };
       await formComponent.saveForm({ force: true });
       await formComponent.saveForm({ force: true, targetStep: 'review' });
       expect(update.calls.allArgs()).toEqual([
-        ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [null, null] } }],
-        ['publication', metadata, 'review', { formSave: true, rowEdits: { [path]: [
-          { source: 0, proof: 'imported' }, { source: 1, proof: 'manual' },
-        ] } }],
+        ['publication', metadata, '', { formSave: true, rowEdits: { [path]: [null, null, null, null] } }],
+        ['publication', metadata, 'review', { formSave: true, rowEdits: {
+          [path]: proofs.map((proof, source) => ({ source, proof })),
+        } }],
       ]);
     });
 

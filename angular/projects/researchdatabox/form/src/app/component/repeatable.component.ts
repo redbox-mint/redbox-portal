@@ -734,7 +734,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
       return wrapperRef;
     }
-    layoutInstance.parentDisabled = () => this.rowsDisabled;
+    // Staged rows have display indexes but no corresponding form-array positions yet.
+    layoutInstance.parentDisabled = () => this.rowsDisabled || this.compDefMapEntries.some(entry => entry.staged);
     layoutInstance.canChangeRows = () => this.canChangeRows;
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
