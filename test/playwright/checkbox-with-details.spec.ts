@@ -1,4 +1,4 @@
-import { chromium, expect, test, type Page, type Route } from '@playwright/test';
+import { chromium, expect, test, type Page, type Request, type Route } from '@playwright/test';
 import { MongoClient, ObjectId } from 'mongodb';
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -47,20 +47,16 @@ test('loads the demo vocabulary and saves, reopens, activates and prints selecte
   await description.fill('Instrument export bundles');
 
   const saveDraft = () => page.getByRole('button', { name: 'Save draft' }).click();
-  const created = page.waitForResponse(
-    response => response.request().method() === 'POST' && response.url().includes(`${savePath}checkbox-details-demo`)
-  );
-  await saveDraft();
-  const createdResponse = await created;
-  const saved = await createdResponse.json();
-  expect(createdResponse.ok(), JSON.stringify(saved)).toBeTruthy();
-  const oid = saved.data.redboxOid as string;
+  const created = await captureSave(page, 'POST', demoType);
+  const [createdResponse] = await Promise.all([created.response, page.waitForEvent('load'), saveDraft()]);
+  const { body: saved, request: createRequest } = createdResponse;
+  expect(createdResponse.ok, JSON.stringify(saved)).toBeTruthy();
+  const oid = saved.data.redboxOid;
   expect(saved.data.workflow.stage).toBe('draft');
   expect(saved.data.metadata.digitalFormatEstimates).toEqual([
     { value: 'tabulated', details: { volume: 'About 200 CSV files' } },
     { value: 'other', details: { volume: '', description: 'Instrument export bundles' } },
   ]);
-  const createRequest = createdResponse.request();
   const csrf = await createRequest.headerValue('x-csrf-token');
   const rejected = await page.request.put(`${savePath}${oid}?targetStep=active&operation=activate`, {
     data: createRequest.postDataJSON(),
@@ -177,22 +173,49 @@ async function persistedFormats(oid: string): Promise<unknown> {
 
 const demoType = 'checkbox-details-demo';
 const openFormats = (page: Page) => page.getByRole('tab', { name: 'Formats' }).click();
-// A stage-changing update reloads the page into the current form, which
-// discards the response body before waitForResponse can read it. Capture
-// updates through a route instead. Creates keep waitForResponse so they still
-// pass through any route a test registers to adjust the create request.
-const captureUpdate = async (page: Page, oid: string) => {
-  const matches = (url: URL) => url.pathname === savePath + oid;
-  let resolveCapture!: (value: { ok: boolean; body: any }) => void;
-  const captured = new Promise<{ ok: boolean; body: any }>(resolve => { resolveCapture = resolve; });
+type SaveCapture = {
+  ok: boolean;
+  body: { data: {
+    redboxOid: string;
+    workflow: { stage: string };
+    metaMetadata: { form: string };
+    metadata: { digitalFormatEstimates: unknown };
+  } };
+  request: Request;
+};
+type SavePayload = Record<string, unknown>;
+
+// A create or stage-changing update can reload the editor before Chromium
+// exposes the response body. Read it before fulfilling the browser request.
+const captureSave = async (
+  page: Page,
+  method: 'POST' | 'PUT',
+  id: string,
+  transformPayload?: (payload: SavePayload) => SavePayload
+) => {
+  const matches = (url: URL) => url.pathname === savePath + id;
+  let complete!: (value: SaveCapture) => void;
+  let fail!: (error: unknown) => void;
+  const captured = new Promise<SaveCapture>((resolve, reject) => {
+    complete = resolve;
+    fail = reject;
+  });
   const handler = async (route: Route) => {
-    if (route.request().method() !== 'PUT') return route.fallback();
-    const response = await route.fetch();
-    resolveCapture({ ok: response.ok(), body: await response.json() });
-    await route.fulfill({ response });
+    const request = route.request();
+    if (request.method() !== method) return route.fallback();
+    try {
+      const response = transformPayload
+        ? await route.fetch({ postData: transformPayload(request.postDataJSON()) })
+        : await route.fetch();
+      const body = await response.json();
+      await route.fulfill({ response });
+      complete({ ok: response.ok(), body, request });
+    } catch (error) {
+      fail(error);
+      throw error;
+    }
   };
   await page.route(matches, handler);
-  // Wrap the pending capture so awaiting route registration does not also wait for the save.
   return { response: captured.finally(() => page.unroute(matches, handler)) };
 };
 const save = async (
@@ -200,14 +223,12 @@ const save = async (
   label: string,
   method: 'POST' | 'PUT',
   id: string,
-  { waitForReload = false } = {}
+  { waitForReload = method === 'POST', transformPayload }: {
+    waitForReload?: boolean;
+    transformPayload?: (payload: SavePayload) => SavePayload;
+  } = {}
 ) => {
-  const response = method === 'PUT'
-    ? (await captureUpdate(page, id)).response
-    : page.waitForResponse(
-      response => response.request().method() === method && new URL(response.url()).pathname === savePath + id
-    ).then(async created => ({ ok: created.ok(), body: await created.json() }));
-  // The captured PUT body is available before the browser finishes the form's reload.
+  const { response } = await captureSave(page, method, id, transformPayload);
   const reload = waitForReload ? page.waitForEvent('load') : undefined;
   const [data] = await Promise.all([
     response.then(({ ok, body }) => {
@@ -282,19 +303,20 @@ test('saves removals during a pending and failed lookup and validates retained r
   const formats = page.getByRole('group', { name: 'Digital formats and estimated volume' });
   const activate = page.getByRole('button', { name: 'Activate', exact: true });
   const invalid = page.getByRole('alert').filter({ hasText: 'The form is invalid.' });
-  // Seed an older/incomplete draft with a missing property through the real write endpoint.
-  await page.route(url => url.pathname === savePath + demoType, async route => {
-    const payload = route.request().postDataJSON();
-    delete payload.digitalFormatEstimates[0].details.volume;
-    await route.continue({ postData: payload });
-  }, { times: 1 });
   await page.goto(newRecord);
   await title.fill('Synthetic deferred checkbox details');
   await openFormats(page);
   await page.getByRole('checkbox', { name: 'Tabulated files' }).check();
   await page.getByRole('checkbox', { name: 'Image files' }).check();
   await page.getByRole('checkbox', { name: 'Other' }).check();
-  const draft = await save(page, 'Save draft', 'POST', demoType);
+  // Seed an older incomplete draft through the real write endpoint.
+  const draft = await save(page, 'Save draft', 'POST', demoType, {
+    transformPayload(payload) {
+      const estimates = payload.digitalFormatEstimates as { details: SavePayload }[];
+      delete estimates[0].details.volume;
+      return payload;
+    },
+  });
   const oid: string = draft.redboxOid;
   const incomplete = [{ value: 'tabulated', details: {} }];
   const otherRow = { value: 'other', details: { volume: '10 GB', description: 'Custom exports' } };
