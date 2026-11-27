@@ -1,4 +1,4 @@
-import { concatMap, debounceTime, filter, map, Observable, Subscription, tap } from 'rxjs';
+import { concatMap, debounceTime, filter, groupBy, map, mergeMap, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -58,7 +58,7 @@ export class BehaviourHandler {
   private isProcessingFormReadyExecution = false;
   private readonly selections = new Map<string | undefined, RecordSelection>();
   private readonly pendingMetadataLoads = new Set<BehaviourWork>();
-  private queuedMetadataLoad?: BehaviourWork;
+  private readonly queuedMetadataLoads = new Map<string | undefined, BehaviourWork>();
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -96,7 +96,7 @@ export class BehaviourHandler {
       concatMap(async work => {
         try {
           if (!await this.matches(work)) return null;
-          this.queuedMetadataLoad = work;
+          this.queuedMetadataLoads.set(this.metadataDebounceKey(work), work);
           return work;
         } catch (error) {
           await this.handleExecutionError(error, work);
@@ -107,10 +107,14 @@ export class BehaviourHandler {
       }),
       filter(work => work !== null)
     ) : candidates;
-    const source$ = debounceMs > 0 ? eligibleWork.pipe(debounceTime(debounceMs)) : eligibleWork;
+    const source$ = matchesBeforeDebounce ? eligibleWork.pipe(
+      groupBy(work => this.metadataDebounceKey(work)),
+      mergeMap(group => group.pipe(debounceTime(debounceMs)))
+    ) : debounceMs > 0 ? eligibleWork.pipe(debounceTime(debounceMs)) : eligibleWork;
     this.subscriptions.push(
       source$.subscribe(work => {
-        if (this.queuedMetadataLoad === work) this.queuedMetadataLoad = undefined;
+        const key = this.metadataDebounceKey(work);
+        if (this.queuedMetadataLoads.get(key) === work) this.queuedMetadataLoads.delete(key);
         void this.execute(work, matchesBeforeDebounce);
       })
     );
@@ -119,7 +123,7 @@ export class BehaviourHandler {
   destroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
-    this.queuedMetadataLoad = undefined;
+    this.queuedMetadataLoads.clear();
     this.selections.clear();
     this.pendingMetadataLoads.clear();
     this.logicalFieldEntries.clear();
@@ -169,6 +173,10 @@ export class BehaviourHandler {
     };
     this.selections.set(event.fieldId, selection);
     return selection;
+  }
+
+  private metadataDebounceKey(work: BehaviourWork): string | undefined {
+    return work.selection ? work.event.fieldId : undefined;
   }
 
   private isCurrent(work: BehaviourWork): boolean {
@@ -280,7 +288,7 @@ export class BehaviourHandler {
   }
 
   get isLoadingMetadata(): boolean {
-    return (!!this.queuedMetadataLoad && this.isCurrent(this.queuedMetadataLoad)) ||
+    return Array.from(this.queuedMetadataLoads.values()).some(work => this.isCurrent(work)) ||
       Array.from(this.pendingMetadataLoads).some(work => this.isCurrent(work));
   }
 

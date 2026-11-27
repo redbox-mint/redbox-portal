@@ -2006,7 +2006,7 @@ describe('FormComponent', () => {
   }
 
   for (const debounceMs of [0, 50]) {
-    const setupSelectionRace = async () => {
+    const setupSelectionRace = async (withCitation = false) => {
       const { config, assets } = creatorImportConfig([{ name: 'Original creator' }]);
       const condition = "event.fieldId = '/dataRecord'";
       Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition, debounceMs });
@@ -2015,11 +2015,26 @@ describe('FormComponent', () => {
         component: { class: 'SimpleInputComponent' },
         model: { class: 'SimpleInputModel', config: { value: 'original' } },
       });
+      const citationTemplate = '$join($map(formData.creators, function($creator) {$creator.name}), "; ")';
+      if (withCitation) {
+        config.componentDefinitions!.push({
+          name: 'citation_generated',
+          component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel' },
+          expressions: [{
+            name: 'citation-on-any-change',
+            config: { conditionKind: 'jsonpointer', runOnFormReady: true, target: 'model.value', hasTemplate: true, template: citationTemplate },
+          }],
+        });
+      }
       const evaluate = assets.entries[0].callable;
       const conditionOutcomes = new Map<string, 'throw' | 'skip'>();
       let conditionAStarted!: () => void;
       const conditionA = new Promise<void>(resolve => { conditionAStarted = resolve; });
       assets.entries[0].callable = async (key, path, context) => {
+        if (path[0] === 'componentDefinitions' && path[1] === 2) {
+          return jsonataCompileAndEvaluate(citationTemplate, context);
+        }
         if (path.at(-1) !== 'condition') return evaluate(key, path, context);
         if (context.event.fieldId === '/dataRecord') {
           const oid = context.event.value?.oid;
@@ -2091,14 +2106,15 @@ describe('FormComponent', () => {
       );
     });
 
-    for (const importB of [false, true]) {
-      it(`discards only stale rows when the next selection ${importB ? 'imports rows' : 'needs no import'} with debounceMs=${debounceMs}`, async () => {
-        const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace();
-        if (!importB) conditionOutcomes.set('source-b', 'skip');
+    for (const sourceB of ['skip', 'empty', 'creators']) {
+      it(`keeps committed creators and citation when the next selection is ${sourceB} with debounceMs=${debounceMs}`, async () => {
+        const { conditionOutcomes, fixture, formComponent, path, select, fetch, update } = await setupSelectionRace(true);
+        if (sourceB === 'skip') conditionOutcomes.set('source-b', 'skip');
+        const importB = sourceB === 'creators';
         fetch.withArgs('source-a').and.resolveTo({
           contributor_ci: [{ family_name: 'Staged from A' }, { family_name: 'Held from A' }],
         });
-        fetch.withArgs('source-b').and.resolveTo({ contributor_ci: [{ family_name: 'Creator from B' }] });
+        fetch.withArgs('source-b').and.resolveTo(importB ? { contributor_ci: [{ family_name: 'Creator from B' }] } : {});
         const original = formComponent.form!.get(['creators', 0]);
         const initialize = FormBaseWrapperComponent.prototype.initWrapperComponent;
         let finishA!: () => void;
@@ -2121,10 +2137,13 @@ describe('FormComponent', () => {
 
         select('source-a');
         await rowHeld;
-        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Original creator' }, { name: 'Staged from A' }]);
+        expect(formComponent.form!.get('creators')?.value).toEqual([{ name: 'Original creator' }]);
+        const repeatable = formComponent.getComponentDefByName('creators')!.component as RepeatableComponent;
+        expect(repeatable.formFieldCompMapEntries).toHaveSize(1);
         select('source-b');
         await fixture.whenStable();
-        expect(fetch.calls.allArgs()).toEqual(importB ? [['source-a'], ['source-b']] : [['source-a']]);
+        expect(fetch.calls.allArgs()).toEqual(sourceB === 'skip' ? [['source-a']] : [['source-a'], ['source-b']]);
+        expect(formComponent.form!.get('citation_generated')?.value).toBe('Original creator');
         await formComponent.saveForm({ force: true });
         await formComponent.saveForm({ force: true, targetStep: 'review' });
         expect(update).not.toHaveBeenCalled();
@@ -2132,9 +2151,11 @@ describe('FormComponent', () => {
         fixture.ngZone!.run(finishA);
         await fixture.whenStable();
         if (!importB) expect(formComponent.form!.get(['creators', 0])).toBe(original);
-        const creators = [{ name: importB ? 'Creator from B' : 'Original creator' }];
+        const citation = importB ? 'Creator from B' : 'Original creator';
+        const creators = [{ name: citation }];
         expect(formComponent.form!.get('creators')?.value).toEqual(creators);
-        const metadata = { creators, dataRecord: { oid: 'source-b' } };
+        expect(formComponent.form!.get('citation_generated')?.value).toBe(citation);
+        const metadata = { creators, dataRecord: { oid: 'source-b' }, citation_generated: citation };
         const draftRow = importB ? null : { source: 0, proof: 'original' };
         await formComponent.saveForm({ force: true });
         await formComponent.saveForm({ force: true, targetStep: 'review' });
@@ -2167,6 +2188,66 @@ describe('FormComponent', () => {
       ]);
     });
   }
+
+  it('imports both selector fields matched in one debounce window before draft and review saves', async () => {
+    const { config, assets } = creatorImportConfig([]);
+    const fields = ['primaryRecord', 'secondaryRecord'];
+    const fetchCondition = "event.fieldId in ['/primaryRecord', '/secondaryRecord']";
+    const emitValue = '{"selector": event.fieldId, "title": value.title}';
+    const importTemplate = 'event.value.title';
+    Object.assign(config.behaviours![0], { conditionKind: 'jsonata', condition: fetchCondition, debounceMs: 25 });
+    Object.assign(config.behaviours![0].actions![0].config, { hasValueTemplate: true, valueTemplate: emitValue });
+    const conditionFor = (index: number) => `event.fieldId = '/dataRecordGetter' and event.value.selector = '/${fields[index]}'`;
+    const input = (name: string): Field => ({
+      name, component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+    });
+    config.componentDefinitions = fields.flatMap((field, index): Field[] => [
+      input(field), {
+        ...input(`${field}Title`),
+        expressions: [{
+          name: 'import-title',
+          config: {
+            conditionKind: 'jsonata', condition: conditionFor(index), target: 'model.value',
+            hasTemplate: true, template: importTemplate,
+          },
+        }],
+      },
+    ]);
+    const evaluate = assets.entries[0].callable;
+    assets.entries[0].callable = (key, path, context) => {
+      if (path.includes('processors')) return evaluate(key, path, context);
+      if (path[0] === 'behaviours') return jsonataCompileAndEvaluate(path.at(-1) === 'condition' ? fetchCondition : emitValue, context);
+      return jsonataCompileAndEvaluate(path.at(-1) === 'condition' ? conditionFor((Number(path[1]) - 1) / 2) : importTemplate, context);
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'publication', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
+    }, undefined, assets);
+    const fetch = spyOn(formComponent.recordService, 'getRecordMeta').and.callFake(async oid => ({ title: `Title from ${oid}` }));
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null,
+    });
+    const bus = TestBed.inject(FormComponentEventBus);
+    fixture.ngZone!.run(() => {
+      fields.forEach(field => {
+        const value = { oid: field };
+        formComponent.form!.get(field)!.setValue(value, { emitEvent: false });
+        bus.publish(createFieldValueChangedEvent({ fieldId: `/${field}`, sourceId: '*', value }));
+      });
+    });
+    await fixture.whenStable();
+
+    expect(fetch.calls.allArgs()).toEqual([['primaryRecord'], ['secondaryRecord']]);
+    const metadata = {
+      primaryRecord: { oid: 'primaryRecord' }, primaryRecordTitle: 'Title from primaryRecord',
+      secondaryRecord: { oid: 'secondaryRecord' }, secondaryRecordTitle: 'Title from secondaryRecord',
+    };
+    await formComponent.saveForm({ force: true });
+    await formComponent.saveForm({ force: true, targetStep: 'review' });
+    expect(update.calls.allArgs()).toEqual([
+      ['publication', metadata, '', { formSave: true }],
+      ['publication', metadata, 'review', { formSave: true }],
+    ]);
+  });
 
   it('releases a rejected debounced metadata condition without creating a pending import', async () => {
     const { config, assets } = creatorImportConfig([{ name: 'Previous creator' }]);

@@ -122,7 +122,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
-    return this.compDefMapEntries?.map(i => i?.defEntry) ?? [];
+    return this.compDefMapEntries?.filter(entry => !entry.staged).map(entry => entry.defEntry) ?? [];
   }
 
   protected get getFormComponent(): FormComponent {
@@ -527,7 +527,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       value = this.getElementTemplateDefaultValue();
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
-    stagedRows?.push(elemEntry);
+    if (stagedRows) {
+      elemEntry.staged = true;
+      stagedRows.push(elemEntry);
+    }
     await this.createElement(elemEntry, options);
     const row = elemEntry.defEntry.model?.formControl;
     const array = this.model?.formControl;
@@ -566,7 +569,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         (this.model?.isRowDisabled(row) || !this.formService.shouldIncludeInFormControlMap(entry.defEntry, true)));
     }).reverse();
     const needsBlankRow = this.compDefMapEntries.length === remove.length && !nextValues.length && !this.allowZeroRows;
-    const stagedRows = stage ? [] as RepeatableElementEntry[] : undefined;
+    const stagedRows: RepeatableElementEntry[] | undefined = stage ? [] : undefined;
     let complete = false;
     const discardImport = stage && array
       ? this.getFormComponent.importRows(array, () => complete && array.length === this.compDefMapEntries.length)
@@ -582,16 +585,25 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         await this.appendNewElement(value, false, options, undefined, stagedRows);
       }
       if (isCurrent?.() === false) return;
-      if (stage && array?.length !== this.compDefMapEntries.length) {
-        throw new Error('The linked record rows could not be applied.');
-      }
-      if (stage) {
+      if (stagedRows) {
+        if (stagedRows.some(entry => !entry.layoutInstance || !entry.defEntry.model?.formControl)) {
+          throw new Error('The linked record rows could not be applied.');
+        }
+        const commitOptions = { ...options, emitEvent: false };
         for (const entry of remove) {
-          if (this.compDefMapEntries.includes(entry)) this.removeElementFn(entry, options)();
+          if (this.compDefMapEntries.includes(entry)) this.removeElementFn(entry, commitOptions)();
+        }
+        for (const entry of stagedRows) {
+          this.model?.addElement(entry.defEntry.model, commitOptions);
+          entry.staged = false;
         }
         if (array && !importing) this.getFormComponent.forgetLoadedRows(array);
+        complete = true;
+        this.rebuildLineagePaths();
+        array?.updateValueAndValidity();
+      } else {
+        complete = true;
       }
-      complete = true;
     } finally {
       if (!complete && stagedRows) {
         const cleanupOptions = { ...options, replaceImportedRows: true } as const;
@@ -710,6 +722,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       : this.compDefMapEntries.length > 0;
     elemEntry.layoutInstance = layoutInstance;
     this.updateCanSortFlags();
+    // Imported rows stay outside the form until the replacement commits.
+    if (elemEntry.staged) return wrapperRef;
     if (this.model?.formControl && compInstance?.model) {
       this.model.addElement(compInstance.model, options);
     } else {
@@ -937,6 +951,7 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
  * Used to store the information about a repeatable element in the form, including its model, component, and layout, and other information needed to add or remove it from the form dynamically.
  */
 export interface RepeatableElementEntry {
+  staged?: boolean;
   defEntry: FormFieldCompMapEntry;
   wrapperRef: ComponentRef<FormBaseWrapperComponent<unknown>> | null | undefined;
   /**
