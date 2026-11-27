@@ -91,8 +91,7 @@ describe('FormComponent', () => {
   });
 
   beforeEach(async () => {
-    setWindowSearch('');
-    setFormDebugUrl('1');
+    setWindowSearch('?formDebug=1');
     await createTestbedModule(
       {
         declarations: {
@@ -948,6 +947,30 @@ describe('FormComponent', () => {
     }
   });
 
+  it('opens the persisted draft when Save and Close has no previous page', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady({
+      name: 'create-close-fallback',
+      componentDefinitions: [{
+        name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Draft title' } },
+        component: { class: 'SimpleInputComponent' },
+      }],
+    }, { oid: '', recordType: 'rdmp', editMode: true, formName: '', downloadAndCreateOnInit: false });
+    spyOn(formComponent.recordService, 'create').and.resolveTo({
+      success: true, oid: 'created-draft', message: '', data: null,
+    });
+    spyOn<any>(formComponent, 'canNavigateBack').and.returnValue(false);
+    const navigate = spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+    const redirect = spyOn(formComponent, 'doRedirect').and.stub();
+    const replaceUrl = spyOn(fixture.debugElement.injector.get(Location), 'replaceState').and.stub();
+
+    await formComponent.saveForm({ force: true, closeOnSave: true });
+
+    const editPath = jasmine.stringMatching(/\/record\/edit\/created-draft$/);
+    expect(replaceUrl).toHaveBeenCalledOnceWith(editPath);
+    expect(navigate).toHaveBeenCalledOnceWith(editPath, true);
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
   it('keeps the create form inert while saving and restores it after a create failure', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady({
       name: 'create-lock',
@@ -1554,9 +1577,43 @@ describe('FormComponent', () => {
     );
   });
 
+  it('retries a failed linked-record import for the same OID before review', async () => {
+    const { formComponent, fetch, select } = await createCreatorImportForm([{ name: 'Previous creator' }]);
+    const path = '["creators"]';
+    formComponent.formDefMap!.formConfigMeta = {
+      oid: 'publication', editableRowPaths: [path], rowProofs: { [path]: ['previous'] },
+    };
+    let attempts = 0;
+    fetch.withArgs('new-source').and.callFake(async () => {
+      if (++attempts === 1) throw new Error('Unable to load the selected record');
+      return { contributor_ci: [{ family_name: 'New creator' }] };
+    });
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo({
+      success: true, oid: 'publication', message: '', data: null, savedRowProofs: { [path]: ['incoming'] },
+    });
+
+    await select('new-source');
+    expect(formComponent.form!.get(['creators', 0, 'name'])?.value).toBe('Previous creator');
+    await select('new-source');
+    await formComponent.saveForm({ targetStep: 'review' });
+    expect(update).toHaveBeenCalledOnceWith(
+      'publication', { creators: [{ name: 'New creator' }] }, 'review',
+      { formSave: true, rowEdits: { [path]: [null] } },
+    );
+
+    formComponent.form!.get(['creators', 0, 'name'])!.setValue('Edited imported creator');
+    await select('new-source');
+    await formComponent.saveForm();
+    expect(update.calls.argsFor(1)).toEqual([
+      'publication', { creators: [{ name: 'Edited imported creator' }] }, '',
+      { formSave: true, rowEdits: { [path]: [{ source: 0, proof: 'incoming' }] } },
+    ]);
+  });
+
   it('loads persisted row proofs after create before a linked record import and review save', async () => {
     setWindowSearch('?dataRecordOid=old-source');
     const createForm = creatorImportConfig([{ name: 'Same name' }]);
+    createForm.config.behaviours![0].debounceMs = 25;
     const createEditor = await createFormAndWaitForReady(createForm.config, {
       oid: '', formName: '', recordType: 'dataPublication', editMode: true, downloadAndCreateOnInit: false,
     }, undefined, createForm.assets);
@@ -1575,17 +1632,28 @@ describe('FormComponent', () => {
       fetchStarted();
       return new Promise(resolve => { finishFetch = resolve; });
     });
-    createEditor.fixture.ngZone!.run(() => bus.publish(createFieldValueChangedEvent({
-      fieldId: '/dataRecord', sourceId: '*', value: { oid: 'old-source' },
-    })));
+    createEditor.fixture.ngZone!.run(() => {
+      bus.publish(createFieldValueChangedEvent({
+        fieldId: '/dataRecord', sourceId: '*', value: { oid: 'old-source' },
+      }));
+      bus.publish(createFieldValueChangedEvent({
+        fieldId: '/dataRecord', sourceId: '*', value: { oid: 'old-source' }, previousValue: { oid: 'old-source' },
+      }));
+      bus.publish(createFieldValueChangedEvent({
+        fieldId: '/unrelated', sourceId: '*', value: 'Unrelated edit',
+      }));
+    });
+    await createEditor.formComponent.saveForm({ force: true });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
     await fetching;
     await createEditor.formComponent.saveForm({ force: true });
     expect(create).not.toHaveBeenCalled();
-    finishFetch({});
+    finishFetch({ contributor_ci: [{ family_name: 'Imported before create' }] });
     await createEditor.fixture.whenStable();
 
     await createEditor.formComponent.saveForm({ force: true });
-    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Same name' }] }, 'dataPublication', '');
+    expect(create).toHaveBeenCalledOnceWith({ creators: [{ name: 'Imported before create' }] }, 'dataPublication', '');
     expect(navigate).toHaveBeenCalledOnceWith(jasmine.stringMatching(/\/record\/edit\/persisted-draft$/), true);
     const editUrl = new URL(navigate.calls.first().args[0], window.location.origin);
     expect(editUrl.searchParams.has('dataRecordOid')).toBeFalse();
@@ -1597,7 +1665,7 @@ describe('FormComponent', () => {
     setWindowSearch(editUrl.search);
 
     // The persisted edit form can include rows or metadata added by save hooks.
-    const { config, assets } = creatorImportConfig([{ name: 'Same name' }, { name: 'Disabled creator' }]);
+    const { config, assets } = creatorImportConfig([{ name: 'Imported before create' }, { name: 'Disabled creator' }]);
     const loadCondition = '$exists(runtimeContext.requestParams.dataRecordOid)';
     const loadOid = 'runtimeContext.requestParams.dataRecordOid';
     config.behaviours!.push({

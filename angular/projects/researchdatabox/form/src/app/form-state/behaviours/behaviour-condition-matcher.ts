@@ -54,7 +54,7 @@ export async function matchBehaviourCondition(
  * - broadcast events can match descendants by pointer prefix
  * - `runOnFormReady === false` suppresses ready-time execution
  */
-function matchJSONPointerCondition(
+export function matchJSONPointerCondition(
   condition: string,
   event: FormComponentEvent,
   behaviourConfig: FormBehaviourConfigFrame,
@@ -97,16 +97,7 @@ async function matchJSONataCondition(
   ctx: BehaviourConditionMatchContext,
   includeQuerySource: boolean
 ): Promise<boolean> {
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
-  // A runOnFormReady behaviour must only fire for the form-ready event itself.
-  // Without this guard, any later broadcast event (sourceId="*") would also
-  // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.
-  if (behaviourConfig.runOnFormReady && !isRunOnFormReady) {
-    return false;
-  }
-  if (event.sourceId !== '*' && !isRunOnFormReady) {
-    return false;
-  }
+  if (!canMatchJSONataEvent(event, behaviourConfig)) return false;
 
   const requestParams = ctx.requestParams;
   const runtimeContext = ctx.querySource?.runtimeContext ?? { requestParams };
@@ -119,4 +110,18 @@ async function matchJSONataCondition(
     ...(includeQuerySource ? { querySource: ctx.querySource?.querySource } : {}),
   });
   return !!result;
+}
+
+export function canMatchJSONataEvent(event: FormComponentEvent, behaviourConfig: FormBehaviourConfigFrame): boolean {
+  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  // A runOnFormReady behaviour must only fire for the form-ready event itself.
+  // Without this guard, any later broadcast event (sourceId="*") would also
+  // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.
+  if (behaviourConfig.runOnFormReady && !isRunOnFormReady) {
+    return false;
+  }
+  if (event.sourceId !== '*' && !isRunOnFormReady) {
+    return false;
+  }
+  return true;
 }

@@ -197,7 +197,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         return !this.isUploadEnabled();
     }
 
-    public prepareForCreate(): boolean {
+    public prepareForCreate(): string | undefined {
         return prepareUploadForCreate(this.uppy);
     }
 

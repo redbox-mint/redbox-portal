@@ -3,12 +3,12 @@ import type Dashboard from "@uppy/dashboard";
 
 type UploadData = Record<string, unknown>;
 
-export function prepareUploadForCreate(uppy?: Uppy<UploadData, UploadData>): boolean {
+export function prepareUploadForCreate(uppy?: Uppy<UploadData, UploadData>): string | undefined {
     if (!uppy) {
-        return true;
+        return undefined;
     }
     if (Object.keys(uppy.getState().currentUploads).length || uppy.getFiles().some(file => !file.progress.uploadComplete || file.error)) {
-        return false;
+        return "Finish or remove pending uploads before creating this record.";
     }
 
     // Dashboard is rendered outside the form, so the form's inert state will not close it.
@@ -16,5 +16,5 @@ export function prepareUploadForCreate(uppy?: Uppy<UploadData, UploadData>): boo
     if (dashboard?.isModalOpen()) {
         dashboard.closeModal();
     }
-    return true;
+    return undefined;
 }

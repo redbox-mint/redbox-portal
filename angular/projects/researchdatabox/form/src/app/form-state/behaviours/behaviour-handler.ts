@@ -1,4 +1,4 @@
-import { debounceTime, Observable, Subscription } from 'rxjs';
+import { debounceTime, filter, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -20,7 +20,7 @@ import {
   BehaviourCompiledTemplateEvaluator,
 } from './behaviour-compiled-template-evaluator';
 import { isRepeatableFieldEntry, resolveFieldByPointer } from './behaviour-field-resolver';
-import { matchBehaviourCondition } from './behaviour-condition-matcher';
+import { canMatchJSONataEvent, matchBehaviourCondition, matchJSONPointerCondition } from './behaviour-condition-matcher';
 import { BehaviourPipelineContext, executeBehaviourProcessor } from './behaviour-processors';
 import { executeBehaviourAction } from './behaviour-actions';
 import { getEventJSONPointerCondition } from '../events/form-component-base-event-producer-consumer';
@@ -51,6 +51,8 @@ export class BehaviourHandler {
   private readonly metadataCache = new Map<string, unknown>();
   private isProcessingFormReadyExecution = false;
   private pendingMetadataLoads = 0;
+  private queuedMetadataLoad = false;
+  private pendingSelectionOid?: string;
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
   private compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
@@ -79,9 +81,23 @@ export class BehaviourHandler {
 
     const observable = this.getEventObservable();
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const source$ = debounceMs > 0 ? observable.pipe(debounceTime(debounceMs)) : observable;
+    const fetchesMetadata = this.fetchesMetadata();
+    const source$ = debounceMs > 0 ? observable.pipe(
+      filter(event => !fetchesMetadata || this.canQueueMetadataLoad(event)),
+      tap(event => {
+        if (!fetchesMetadata) return;
+        this.queuedMetadataLoad = true;
+        // A reselection can replace the original event before the fetch has started.
+        if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED) {
+          const oid = selectedRecordOid(event.value);
+          if (oid && oid !== selectedRecordOid(event.previousValue)) this.pendingSelectionOid = oid;
+        }
+      }),
+      debounceTime(debounceMs)
+    ) : observable;
     this.subscriptions.push(
       source$.subscribe(event => {
+        this.queuedMetadataLoad = false;
         void this.execute(event);
       })
     );
@@ -90,6 +106,7 @@ export class BehaviourHandler {
   destroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
+    this.queuedMetadataLoad = false;
     this.logicalFieldEntries.clear();
   }
 
@@ -109,6 +126,18 @@ export class BehaviourHandler {
       }
     }
     return this.ctx.eventBus.selectAll$();
+  }
+
+  private fetchesMetadata(): boolean {
+    return this.behaviour.processors?.some(processor => processor.type === FormBehaviourProcessorType.FetchMetadata) ?? false;
+  }
+
+  private canQueueMetadataLoad(event: FormComponentEvent): boolean {
+    if (this.hasExecutedFormReady || (this.isProcessingFormReadyExecution && event.sourceId === '*')) return false;
+    const kind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
+    return kind === ExpressionsConditionKind.JSONPointer
+      ? matchJSONPointerCondition(this.behaviour.condition, event, this.behaviour, this.getEventQuerySource(event))
+      : canMatchJSONataEvent(event, this.behaviour);
   }
 
   /**
@@ -141,7 +170,7 @@ export class BehaviourHandler {
     if (isFormReadyEvent) {
       this.isProcessingFormReadyExecution = true;
     }
-    const fetchesMetadata = this.behaviour.processors?.some(processor => processor.type === FormBehaviourProcessorType.FetchMetadata);
+    const fetchesMetadata = this.fetchesMetadata();
     if (fetchesMetadata) this.pendingMetadataLoads++;
     try {
       const condition = this.behaviour.condition;
@@ -168,6 +197,8 @@ export class BehaviourHandler {
       for (const [processorIndex, processor] of (this.behaviour.processors ?? []).entries()) {
         const fetchesSelection = processor.type === FormBehaviourProcessorType.FetchMetadata &&
           typeof value === 'string' && !!selectedOid && value.trim() === selectedOid;
+        const changesSelection = fetchesSelection && (selectedOid !== previousOid || selectedOid === this.pendingSelectionOid);
+        if (changesSelection) this.pendingSelectionOid = selectedOid;
         value = await executeBehaviourProcessor(processor, this.buildPipelineContext(value, event), {
           behaviourIndex: this.behaviourIndex,
           processorIndex,
@@ -177,11 +208,14 @@ export class BehaviourHandler {
           metadataCache: this.metadataCache,
         });
         recordImport = fetchesSelection
-          ? (selectedOid === previousOid ? 'same-selection' : 'changed-selection')
+          ? (changesSelection ? 'changed-selection' : 'same-selection')
           : undefined;
       }
 
       await this.executeActions('actions', this.behaviour.actions ?? [], value, event, recordImport);
+      if (recordImport === 'changed-selection' && this.pendingSelectionOid === selectedOid) {
+        this.pendingSelectionOid = undefined;
+      }
       if (isFormReadyEvent) {
         this.hasExecutedFormReady = true;
       }
@@ -203,7 +237,7 @@ export class BehaviourHandler {
   }
 
   get isLoadingMetadata(): boolean {
-    return this.pendingMetadataLoads > 0;
+    return this.queuedMetadataLoad || this.pendingMetadataLoads > 0;
   }
 
   /**

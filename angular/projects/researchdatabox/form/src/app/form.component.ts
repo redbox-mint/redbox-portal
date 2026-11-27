@@ -1223,14 +1223,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
-  private prepareUploadsForCreate(entries: FormFieldCompMapEntry[]): boolean {
-    return entries.every(({ component }) => {
-      if ((component instanceof DataLocationComponent || component instanceof FileUploadComponent) &&
-          !component.prepareForCreate()) {
-        return false;
+  private prepareFieldsForCreate(entries: FormFieldCompMapEntry[]): string | undefined {
+    for (const { component } of entries) {
+      if (component instanceof DataLocationComponent || component instanceof FileUploadComponent) {
+        const problem = component.prepareForCreate();
+        if (problem) return problem;
       }
-      return this.prepareUploadsForCreate(component?.formFieldCompMapEntries ?? []);
-    });
+      const problem = this.prepareFieldsForCreate(component?.formFieldCompMapEntries ?? []);
+      if (problem) return problem;
+    }
+    return undefined;
   }
 
   public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig) {
@@ -1285,10 +1287,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }));
           return;
         }
-        if (creating && !this.prepareUploadsForCreate(this.componentDefArr)) {
-          this.eventBus.publish(createFormSaveFailureEvent({
-            error: 'Finish or remove pending uploads before creating this record.',
-          }));
+        const pendingInput = creating ? this.prepareFieldsForCreate(this.componentDefArr) : undefined;
+        if (pendingInput) {
+          this.eventBus.publish(createFormSaveFailureEvent({ error: pendingInput }));
           return;
         }
 
@@ -1334,19 +1335,23 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               leavingCreatedRecord = true;
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
+            const redirectLocation = this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined;
+            // Without a close destination, open the persisted form just as for a draft save.
+            const closeOnSave = createdEditPath && options?.closeOnSave && !redirectLocation && !this.canNavigateBack()
+              ? false : options?.closeOnSave;
             // Emit success event
             this.eventBus.publish(
               createFormSaveSuccessEvent({
                 savedData,
                 oid: oid,
                 response,
-                closeOnSave: options?.closeOnSave,
-                redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid) || undefined,
+                closeOnSave,
+                redirectLocation,
                 redirectDelaySeconds: options?.redirectDelaySeconds,
               })
             );
             if (createdEditPath) {
-              this.finishCreateNavigation(createdEditPath, options?.closeOnSave);
+              this.finishCreateNavigation(createdEditPath, closeOnSave);
             }
           } else {
             this.loggerService.warn(`${this.logName}: Form submission failed:`, response);
@@ -1507,6 +1512,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         that.changeLocationHref(redirectLocation);
       }, redirectDelayMs);
     }
+  }
+
+  protected canNavigateBack(): boolean {
+    const browser = this.window as (Window & { navigation?: { canGoBack: boolean } }) | null;
+    return browser?.navigation?.canGoBack ?? ((browser?.history.length ?? 0) > 1);
   }
 
   private finishCreateNavigation(path: string, closeOnSave = false): void {

@@ -689,6 +689,51 @@ describe("DataLocationComponent", () => {
         }
     });
 
+    it("keeps manual location input and changed notes until the user adds or applies them", async () => {
+        const { fixture, formComponent } = await createFormAndWaitForReady({
+            name: "create",
+            componentDefinitions: [{
+                name: "dataLocations",
+                component: { class: "DataLocationComponent" },
+                model: { class: "DataLocationModel", config: { value: [{ type: "url", location: "https://example.test/first", notes: "Original" }] } }
+            }]
+        }, { oid: "", editMode: true, formName: "", recordType: "rdmp", downloadAndCreateOnInit: false });
+        const locations = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        const create = spyOn(formComponent.recordService, "create").and.resolveTo({
+            success: true, oid: "created", message: "", data: null
+        });
+        spyOn<any>(formComponent, "changeLocationHref").and.stub();
+        const errors: string[] = [];
+        const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_FAILURE)
+            .subscribe(event => errors.push(String(event.error)));
+        try {
+            locations.onDraftTypeChange("url");
+            locations.updateDraftLocation("https://example.test/next");
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+            expect(errors[0]).toContain("use Add");
+            expect(locations.draftLocation.location).toBe("https://example.test/next");
+            locations.addLocation();
+
+            locations.startEditNotes(0);
+            locations.editingNotesValue = "Changed notes";
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+            expect(errors[1]).toContain("Use Apply or Cancel");
+            expect(locations.editingNotesValue).toBe("Changed notes");
+            locations.applyEditNotes();
+            locations.startEditNotes(0);
+
+            await formComponent.saveForm({ force: true });
+            expect(create).toHaveBeenCalledOnceWith({ dataLocations: [
+                jasmine.objectContaining({ location: "https://example.test/first", notes: "Changed notes" }),
+                jasmine.objectContaining({ location: "https://example.test/next" })
+            ] }, "rdmp", "");
+        } finally {
+            subscription.unsubscribe();
+        }
+    });
+
     it("falls back to window origin for attachment links when brandingAndPortalUrl is unset", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

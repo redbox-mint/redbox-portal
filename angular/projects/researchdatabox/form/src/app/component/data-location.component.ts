@@ -269,7 +269,20 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         }
     }
 
-    public prepareForCreate(): boolean {
+    public prepareForCreate(): string | undefined {
+        const editedLocation = this.dataLocations[this.editingNotesIndex];
+        if (editedLocation && this.optionalString(this.editingNotesValue) !== editedLocation.notes) {
+            return "Use Apply or Cancel to finish editing the data location notes before creating the record.";
+        }
+
+        const { type, location, notes, isc } = this.draftLocation;
+        const hasDraftNotes = this.notesEnabled && !this.isNotesHiddenForLocationType(type) && notes.trim();
+        const hasDraftClassification = this.iscEnabled && this.optionalString(isc) !== this.optionalString(this.defaultSelect);
+        if (location.trim() || hasDraftNotes || hasDraftClassification) {
+            return type === "attachment"
+                ? "Upload the pending attachment or clear its input before creating the record."
+                : "Complete the pending data location and use Add, or clear its input before creating the record.";
+        }
         return prepareUploadForCreate(this.uppy);
     }
 
