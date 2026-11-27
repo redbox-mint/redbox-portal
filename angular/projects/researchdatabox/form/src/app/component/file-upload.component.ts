@@ -19,6 +19,7 @@ import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state";
 import {FormService} from "../form.service";
+import { prepareUploadForCreate } from "./prepare-upload-for-create";
 
 type UppyMeta = Record<string, unknown>;
 type UppyBody = Record<string, unknown>;
@@ -201,6 +202,10 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
         return !this.isUploadEnabled() || this.loadingUploader;
     }
 
+    public prepareForCreate(): string | undefined {
+        return prepareUploadForCreate(this.uppy);
+    }
+
     public async openModal(): Promise<void> {
         if (!this.isUploadEnabled() || this.destroyed) {
             return;
@@ -288,6 +293,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
 
         this.uppy.use(deps.DashboardPlugin, {
             inline: false,
+            animateOpenClose: currentOid !== pendingOid,
             hideProgressAfterFinish: true,
             proudlyDisplayPoweredByUppy: false,
             note: this.translateText(this.uppyDashboardNote),

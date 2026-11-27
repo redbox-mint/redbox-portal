@@ -1,14 +1,17 @@
+import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { DataLocationComponent } from "./data-location.component";
-import { FormComponentEventBus, createFormSaveSuccessEvent } from "../form-state/events";
+import { FormComponentEventBus, FormComponentEventType, createFormSaveSuccessEvent } from "../form-state/events";
 
 class FakeUppy {
     public plugins: Record<string, any> = {};
     public handlers: Record<string, Function[]> = {};
     public destroy = jasmine.createSpy("destroy");
+    public getState = jasmine.createSpy("getState").and.returnValue({ currentUploads: {} });
+    public getFiles = jasmine.createSpy("getFiles").and.returnValue([]);
 
     use(plugin: any, options: any): this {
         const pluginName = String(plugin?.name ?? "");
@@ -25,7 +28,9 @@ class FakeUppy {
         }
         if (pluginName.includes("Dashboard")) {
             this.plugins["Dashboard"] = {
-                openModal: jasmine.createSpy("openModal")
+                openModal: jasmine.createSpy("openModal"),
+                isModalOpen: jasmine.createSpy("isModalOpen").and.returnValue(false),
+                closeModal: jasmine.createSpy("closeModal")
             };
         }
         return this;
@@ -676,6 +681,102 @@ describe("DataLocationComponent", () => {
             notes: "uploaded in test",
             isc: "official"
         }));
+    });
+
+    it("keeps the create form and includes the upload when the user saves after it finishes", async () => {
+        const config: FormConfigFrame = {
+            name: "create",
+            componentDefinitions: [{
+                name: "dataLocations",
+                component: { class: "DataLocationComponent", config: { allowUploadWithoutSave: true } },
+                model: { class: "DataLocationModel", config: { defaultValue: [] } }
+            }]
+        };
+        const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+            oid: "", editMode: true, formName: "", recordType: "rdmp", downloadAndCreateOnInit: false
+        });
+        const originalForm = formComponent.form;
+        spyOn<any>(formComponent, 'changeLocationHref').and.stub();
+        const create = spyOn(formComponent.recordService, "create").and.resolveTo(RecordActionResult.fromResponse({
+            success: true, oid: "created", message: "", data: null
+        }));
+        const errors: string[] = [];
+        const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_FAILURE)
+            .subscribe(event => errors.push(String(event.error)));
+
+        try {
+            fakeUppy.getState.and.returnValue({ currentUploads: { active: {} } });
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+            expect(errors).toEqual(["Finish or remove pending uploads before creating this record."]);
+            expect(formComponent.form).toBe(originalForm);
+            expect(fakeUppy.destroy).not.toHaveBeenCalled();
+
+            fakeUppy.getState.and.returnValue({ currentUploads: {} });
+            fakeUppy.getFiles.and.returnValue([{ progress: { uploadComplete: false } }]);
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+
+            fakeUppy.emit("upload-success", { name: "data.csv", type: "text/csv" }, {
+                uploadURL: "http://localhost/default/rdmp/record/pending-oid/attach/file-123"
+            });
+            fakeUppy.getFiles.and.returnValue([{ progress: { uploadComplete: true } }]);
+            fakeUppy.plugins["Dashboard"].isModalOpen.and.returnValue(true);
+            await fixture.whenStable();
+            await formComponent.saveForm({ force: true });
+
+            expect(fakeUppy.plugins["Dashboard"].closeModal).toHaveBeenCalledTimes(1);
+            expect(create).toHaveBeenCalledOnceWith({
+                dataLocations: [jasmine.objectContaining({ fileId: "file-123", type: "attachment" })]
+            }, "rdmp", "", undefined, jasmine.any(Object));
+        } finally {
+            subscription.unsubscribe();
+        }
+    });
+
+    it("keeps manual location input and changed notes until the user adds or applies them", async () => {
+        const { fixture, formComponent } = await createFormAndWaitForReady({
+            name: "create",
+            componentDefinitions: [{
+                name: "dataLocations",
+                component: { class: "DataLocationComponent" },
+                model: { class: "DataLocationModel", config: { value: [{ type: "url", location: "https://example.test/first", notes: "Original" }] } }
+            }]
+        }, { oid: "", editMode: true, formName: "", recordType: "rdmp", downloadAndCreateOnInit: false });
+        const locations = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        const create = spyOn(formComponent.recordService, "create").and.resolveTo(RecordActionResult.fromResponse({
+            success: true, oid: "created", message: "", data: null
+        }));
+        spyOn<any>(formComponent, "changeLocationHref").and.stub();
+        const errors: string[] = [];
+        const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_FAILURE)
+            .subscribe(event => errors.push(String(event.error)));
+        try {
+            locations.onDraftTypeChange("url");
+            locations.updateDraftLocation("https://example.test/next");
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+            expect(errors[0]).toContain("use Add");
+            expect(locations.draftLocation.location).toBe("https://example.test/next");
+            locations.addLocation();
+
+            locations.startEditNotes(0);
+            locations.editingNotesValue = "Changed notes";
+            await formComponent.saveForm({ force: true });
+            expect(create).not.toHaveBeenCalled();
+            expect(errors[1]).toContain("Use Apply or Cancel");
+            expect(locations.editingNotesValue).toBe("Changed notes");
+            locations.applyEditNotes();
+            locations.startEditNotes(0);
+
+            await formComponent.saveForm({ force: true });
+            expect(create).toHaveBeenCalledOnceWith({ dataLocations: [
+                jasmine.objectContaining({ location: "https://example.test/first", notes: "Changed notes" }),
+                jasmine.objectContaining({ location: "https://example.test/next" })
+            ] }, "rdmp", "", undefined, jasmine.any(Object));
+        } finally {
+            subscription.unsubscribe();
+        }
     });
 
     it("falls back to window origin for attachment links when brandingAndPortalUrl is unset", async () => {

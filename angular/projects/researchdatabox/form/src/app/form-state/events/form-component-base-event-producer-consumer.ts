@@ -6,7 +6,7 @@ import {
   FormFieldModel,
   LoggerService
 } from '@researchdatabox/portal-ng-common';
-import { ScopedEventBus, FormComponentEventBus } from './form-component-event-bus.service';
+import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentEventBase, FormComponentEventType } from './form-component-event.types';
 import { JSONataQuerySource, FormExpressionsConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
@@ -59,8 +59,6 @@ export function getEventJSONPointerCondition(condition: string): FormComponentEv
  */
 export abstract class FormComponentEventBaseProducerConsumer {
   protected readonly eventBus: FormComponentEventBus;
-  protected scopedBus?: ScopedEventBus;
-  protected fieldId?: string;
   protected loggerService: LoggerService = inject(LoggerService);
   protected subscriptions: Map<string, Subscription> = new Map();
   protected componentDefQuerySource?: JSONataQuerySource;
@@ -92,9 +90,12 @@ export abstract class FormComponentEventBaseProducerConsumer {
   destroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.clear();
-    this.scopedBus = undefined;
-    this.fieldId = undefined;
+    this.options = undefined;
   }
+  protected get fieldId(): string | undefined {
+    return this.options && this.resolveFieldId(this.options);
+  }
+
   /**
     * Resolve the most specific field identifier available for the bound
     * component. Layout definitions use a different lineage path, so callers do

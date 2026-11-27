@@ -83,6 +83,7 @@ import {
   isPrefixLineagePaths,
   isMatchingLineagePaths,
   jsonataDecodeCompile,
+  isStaticallyDisabledFormField,
 } from '@researchdatabox/sails-ng-common';
 import { HttpClient, HttpContext, HttpHeaders } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
@@ -538,14 +539,17 @@ export class FormService extends HttpClientService {
     return compMap;
   }
 
-  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined): boolean {
-    if (!compEntry) {
+  public shouldIncludeInFormControlMap(compEntry: FormFieldCompMapEntry | null | undefined, ignoreAggregateDisabled = false): boolean {
+    if (!compEntry || (compEntry.compConfigJson && isStaticallyDisabledFormField(compEntry.compConfigJson))) {
       return false;
     }
 
-    const modelDisabled = compEntry.compConfigJson?.model?.config?.disabled === true;
-    const componentDisabled = compEntry.compConfigJson?.component?.config?.disabled === true;
-    const layoutDisabled = compEntry.compConfigJson?.layout?.config?.disabled === true;
+    const configuredDisabled = compEntry.model?.fieldConfig?.config?.disabled ?? compEntry.compConfigJson?.model?.config?.disabled === true;
+    const modelDisabled = ignoreAggregateDisabled ? configuredDisabled : (compEntry.model?.formControl?.disabled ?? configuredDisabled);
+    const componentDisabled = compEntry.component?.isDisabled ?? compEntry.compConfigJson?.component?.config?.disabled === true;
+    const layoutDisabled = (compEntry.layout?.componentDefinition
+      ? compEntry.layout.componentDefinition.config?.disabled
+      : compEntry.compConfigJson?.layout?.config?.disabled) === true;
     return !(modelDisabled || componentDisabled || layoutDisabled);
   }
 
@@ -979,6 +983,10 @@ export class FormService extends HttpClientService {
     if (typeof generationRunId === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(generationRunId)) {
       url.searchParams.set('generationRunId', generationRunId);
     }
+    if (editable) {
+      url.searchParams.set('formSave', 'true');
+      url.searchParams.set('rowEdits', 'true');
+    }
 
     type rawRespType = { data: FormConfigFrame; meta: Record<string, unknown>; prehydrate?: FormPrehydratePayload };
     const baseHeaders = this.requestOptions['headers'];
@@ -1106,6 +1114,22 @@ export class FormService extends HttpClientService {
   public buildLineagePaths(base?: LineagePaths, more?: LineagePaths): LineagePaths {
     // Delegate to shared helper to keep existing FormService API intact.
     return buildLineagePathsHelper(base, more);
+  }
+
+  public rebaseFieldPaths(entries: FormFieldCompMapEntry[], previous: LineagePaths, current: LineagePaths): void {
+    for (const child of entries) {
+      const paths = child.lineagePaths;
+      if (paths) {
+        // Compiled expressions still use the same template path after a row moves.
+        child.lineagePaths = this.buildLineagePaths({
+          ...paths,
+          angularComponents: [...current.angularComponents, ...paths.angularComponents.slice(previous.angularComponents.length)],
+          dataModel: [...current.dataModel, ...paths.dataModel.slice(previous.dataModel.length)],
+          layout: [...current.layout, ...paths.layout.slice(previous.layout.length)],
+        });
+      }
+      this.rebaseFieldPaths(child.component?.formFieldCompMapEntries ?? [], previous, current);
+    }
   }
 
   /**

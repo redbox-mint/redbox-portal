@@ -3,7 +3,7 @@ const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
 const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
-const sailsMongoMongodb = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] }));
+const { mongodb: sailsMongoMongodb } = require('sails-mongo') as { mongodb: typeof import('mongodb') };
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
   let rejection: unknown;
@@ -114,7 +114,10 @@ describe('MongoStorageService', function () {
 
     Record = {
       tableName: 'record',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
+      getDatastore: sandbox.stub().returns({
+        manager: mockDb,
+        driver: { mongodb: { GridFSBucket: sandbox.stub().callsFake(() => mockBucket) } },
+      }),
       create: sandbox.stub().resolves({}),
       destroyOne: sandbox.stub().resolves({}),
       updateOne: sandbox.stub(),
@@ -175,10 +178,6 @@ describe('MongoStorageService', function () {
       stagingDisk: sandbox.stub(),
       disk: sandbox.stub(),
     };
-
-    sandbox.stub(mongodb, 'GridFSBucket').callsFake(function () {
-      return mockBucket as any;
-    });
 
     delete require.cache[require.resolve('../../src/services/MongoStorageService')];
     const { Services } = require('../../src/services/MongoStorageService');
@@ -407,8 +406,6 @@ describe('MongoStorageService', function () {
       message: 'namespace not found',
       codeName: 'NamespaceNotFound',
     });
-    expect(namespaceNotFoundByCode instanceof mongodb.MongoServerError).to.equal(false);
-    expect(namespaceNotFoundByName instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       createIndex: sandbox.stub().resolves(),
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
@@ -608,7 +605,6 @@ describe('MongoStorageService', function () {
       code: 13,
       codeName: 'Unauthorized',
     });
-    expect(failure instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       createIndex: sandbox.stub().resolves(),
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
@@ -903,6 +899,18 @@ describe('MongoStorageService', function () {
       expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
     });
   }
+
+  it('fails initialization when the record datastore driver does not expose GridFSBucket', async function () {
+    Record.getDatastore.returns({ manager: mockDb, driver: {} });
+
+    await expectRejects(
+      () => service.performInit(),
+      'The record datastore driver does not expose a MongoDB GridFSBucket.'
+    );
+
+    expect(mockDb.collection.called).to.equal(false);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
+  });
 
   it('fails initialization when an existing record-schema index has mismatched options', async function () {
     const standardCollection = {

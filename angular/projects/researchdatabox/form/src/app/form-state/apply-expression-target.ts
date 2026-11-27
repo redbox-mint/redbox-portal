@@ -12,7 +12,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from './events/form-component-event-bus.service';
 import { createFormValidationGroupsChangeRequestEvent } from './events/form-component-event.types';
-import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
+import { ControlSetValueOptions, isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
 import { CustomDisplaySyncComponentLike, syncComponentDisplayFromModel } from './custom-display-sync.control';
 import { ValueNotificationCause, withExpressionValueNotifications } from './control-value-notifications';
 
@@ -39,6 +39,8 @@ export interface ExpressionTargetHost {
 
 export interface ApplyExpressionTargetContext {
   isActive?: () => boolean;
+  replaceImportedRows?: ControlSetValueOptions['replaceImportedRows'];
+  onlyImportedRows?: boolean;
   eventBus: Pick<FormComponentEventBus, 'publish'>;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -77,11 +79,13 @@ export async function applyExpressionTarget(
   if (ctx.isActive?.() === false) return;
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
-    if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
+    if (host.model?.formControl && (ctx.replaceImportedRows || !isEqual(host.model.formControl.value, targetValue))) {
       const control = host.model.formControl;
       await withExpressionValueNotifications(control, async options => {
         // Validate once, retaining Angular's asynchronous validation events.
-        await setControlValue(control, targetValue, options);
+        await setControlValue(control, targetValue, ctx.replaceImportedRows ? {
+          ...options, replaceImportedRows: true, onlyImportedRows: ctx.onlyImportedRows, isCurrent: ctx.isActive,
+        } : options);
       }, ctx.cause);
       if (ctx.isActive?.() === false) return;
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);

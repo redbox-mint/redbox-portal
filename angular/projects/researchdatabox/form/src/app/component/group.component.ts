@@ -3,9 +3,8 @@ import { AbstractControl, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame,
-  GroupFieldModelValueType,
-  GroupFieldModelName,
-  GroupFieldComponentName,
+  GroupFieldModelValueType, GroupFieldModelName, GroupFieldComponentName,
+  isStaticallyDisabledFormField,
   isTypeFieldDefinitionName,
   isTypeWithComponentDefinitions,
   GroupFieldComponentDefinitionFrame,
@@ -48,7 +47,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 
   public addControl(name: string, control?: AbstractControl<unknown>, emitEvent = true) {
     if (this.formControl && name && control) {
-      if (this.formControl.disabled && control.enabled) {
+      if (this.fieldConfig.config?.disabled && control.enabled) {
         control.disable();
       }
       this.formControl.addControl(name, control, { emitEvent });
@@ -142,6 +141,10 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       formConfig: ['component', 'config', 'componentDefinitions'],
     });
     this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
+    const currentPaths = this.formFieldCompMapEntry?.lineagePaths;
+    if (currentPaths && currentPaths.angularComponentsJsonPointer !== parentLineagePaths.angularComponentsJsonPointer) {
+      this.formService.rebaseFieldPaths(this.formFieldCompMapEntries, parentLineagePaths, currentPaths);
+    }
 
     if (_isEmpty(this.formComponentsMap)) {
       throw new Error(`${this.logName}: No components found in the formComponentsMap.`);
@@ -160,11 +163,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
       // Related view controls are disabled for presentation, but their models
       // still carry reference identities and populated display values.
-      const relatedViewControl =
-        !this.getFormComponent.editMode() &&
-        elemFieldEntry?.compConfigJson?.component?.config?.relatedViewPreserved === true;
-      const includeInFormControlMap =
-        relatedViewControl || this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      const relatedViewControl = !this.getFormComponent.editMode()
+        && elemFieldEntry?.compConfigJson?.component?.config?.relatedViewPreserved === true;
+      const includeInFormControlMap = relatedViewControl || (elemFieldEntry && !isStaticallyDisabledFormField(elemFieldEntry.compConfigJson));
       const elemVal = elemVals?.[key];
       const childModel = elemFieldEntry?.model;
       if (includeInFormControlMap && childModel && !_isUndefined(elemVal)) {

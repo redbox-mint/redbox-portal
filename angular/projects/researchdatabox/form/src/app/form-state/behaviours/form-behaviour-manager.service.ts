@@ -53,6 +53,22 @@ export class FormBehaviourManager implements OnDestroy {
     }
   }
 
+  get isLoadingMetadata(): boolean {
+    return this.handlers.some(handler => handler.isLoadingMetadata);
+  }
+
+  get hasFailedInitialImport(): boolean {
+    return this.handlers.some(handler => handler.hasFailedInitialImport);
+  }
+
+  async retryInitialImports(): Promise<void> {
+    await Promise.all(this.handlers.map(handler => handler.retryInitialImport()));
+  }
+
+  get hasPendingRecordImport(): boolean {
+    return this.handlers.some(handler => handler.hasPendingRecordImport);
+  }
+
   /**
    * Release all active behaviour handlers.
    */

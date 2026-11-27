@@ -17,6 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+/** Positions in a loaded repeatable, or null when the editor added the row. */
+export type FormRowEdit = null | { source: number; proof: string; retain?: true };
+export type FormRowEdits = Record<string, FormRowEdit[]>;
+export type FormRowProofs = Record<string, string[]>;
+
 /**
  * Defines the property/column rendering configuration
  */

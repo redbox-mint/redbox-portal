@@ -202,15 +202,16 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
    * form configs that rely on item selection only affecting adjacent fields.
    */
   private isSiblingEvent(event: FieldItemSelectedEvent): boolean {
-    if (!this.ownPointer || !event.fieldId) {
+    const ownPointer = this.ownPointer;
+    if (!ownPointer || !event.fieldId) {
       return false;
     }
     // Don't consume events from self
-    if (event.fieldId === this.ownPointer) {
+    if (event.fieldId === ownPointer) {
       return false;
     }
     const eventParent = this.getParentPointer(event.fieldId);
-    const ownParent = this.getParentPointer(this.ownPointer);
+    const ownParent = this.getParentPointer(ownPointer);
     if (eventParent === null || ownParent === null) {
       return false;
     }

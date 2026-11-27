@@ -498,7 +498,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       this.setDisplayValue(this.getOptionObjectLabel(value));
       return;
     }
-    if (this.valueMode === 'value' && typeof value === 'string') {
+    if (typeof value === 'string') {
       this.setHistoricalLookupState(this.sourceType === 'vocabulary' && value.trim().length > 0);
       this.setDisplayValue(value);
       return;
@@ -758,11 +758,13 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
    */
   private buildOptionObjectValue(option: TypeaheadOption): TypeaheadInputModelOptionValue {
     if (!this.hasOptionObjectFields()) {
-      return {
+      const storedValue = {
         label: option.label,
         value: option.value,
         sourceType: option.sourceType,
       };
+      this.preserveVocabularyState(option, storedValue);
+      return storedValue;
     }
 
     const source = option.raw ?? option;
