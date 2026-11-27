@@ -14,7 +14,6 @@ import {
   FormComponentEvent,
   FormComponentEventMap,
   FormComponentEventType,
-  isFormInitializationEvent,
 } from '../events/form-component-event.types';
 import {
   BehaviourCompiledItemsModule,
@@ -268,7 +267,6 @@ export class BehaviourHandler {
         behaviourIndex: this.behaviourIndex,
         behaviourChain: [...(event.behaviourChain ?? []), this.handlerId],
         expressionChain: event.expressionChain,
-        initializing: isFormInitializationEvent(event),
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,

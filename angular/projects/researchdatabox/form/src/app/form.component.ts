@@ -133,7 +133,7 @@ import * as FormActions from './form-state/state/form.actions';
 import { FormComponentValueChangeEventConsumer } from './form-state/events/';
 import { DebugInfo, FormDebugStateService } from './form-debug/form-debug-state.service';
 import { FormBehaviourManager } from './form-state/behaviours/form-behaviour-manager.service';
-import { FormServerSyncService, type ServerSyncResult } from './form-server-sync.service';
+import { FormServerSyncService, type ServerSyncMode, type ServerSyncResult } from './form-server-sync.service';
 import {
   FormConflictState,
   FormConflictStatus,
@@ -427,9 +427,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private window: Window & typeof globalThis | null;
   private allowConflictNavigationOnce = false;
-  private allowDeleteRedirectUntil = 0;
+  private deleteNavigationStarted = false;
   private hasUnconfirmedSaveEdits = false;
-  private initializationWindowClosed = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
 
@@ -629,9 +628,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.saveNavigationPending.set(false);
     this.canCompleteSaveRedirect = undefined;
     this.allowConflictNavigationOnce = false;
-    this.allowDeleteRedirectUntil = 0;
+    this.deleteNavigationStarted = false;
     this.hasUnconfirmedSaveEdits = false;
-    this.initializationWindowClosed = false;
     this.conflictExportCompleted = false;
   }
 
@@ -774,8 +772,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         if (evt.closeOnDelete) {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
-              // if closeOnDelete is true, but no redirect is specified, go to the previous page.
-              historyDelta: evt?.redirectLocation ? undefined : -1,
               afterDelete: true,
               redirectLocation: evt?.redirectLocation,
               redirectDelaySeconds: evt?.redirectDelaySeconds,
@@ -946,7 +942,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (revalidate) {
       this.form.updateValueAndValidity({ emitEvent: false });
     }
-    this.initializationWindowClosed ||= this.form.dirty && this.hasChangesToSave();
     const status = this.dataStatus;
     this.formGroupStatus.set(status);
     this.eventBus.publish(
@@ -1296,10 +1291,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const values = Object.values(children) as AbstractControl[];
     return values.some(child => this.hasLocalDirtyControl(child)) ||
       (control.dirty && values.every(child => child.pristine));
-  }
-
-  public get hasStartedEditingOrSaving(): boolean {
-    return this.initializationWindowClosed || this.hasChangesToSave();
   }
 
   public hasChangesToSave(form = this.form): boolean {
@@ -1677,7 +1668,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
-          this.initializationWindowClosed = true;
           this.hasUnconfirmedSaveEdits ||= this.hasChangesToSave();
           this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           this.form.markAsPristine();
@@ -1848,7 +1838,58 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const requireReload = () => this.requireSavedFormReload(
               oid, response, currentFormValue, renderedFingerprint
             );
+            const metadata = response.metadata;
+            const formDefMap = this.formDefMap;
+            const syncMode = formDefMap?.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
+            const canSyncMetadata = metadata !== null && typeof metadata === 'object' &&
+              !Array.isArray(metadata) && formDefMap && form;
+            const syncSavedMetadata = async (mode: ServerSyncMode): Promise<boolean> => {
+              if (!canSyncMetadata) return true;
+              if (mode !== 'never') {
+                const syncResult = await this.serverSyncService.applyServerMetadata(
+                  currentFormValue, metadata, formDefMap, form, mode
+                );
+                if (!ownsSave()) return false;
+                if (this.serverSyncRequiresReview(syncResult)) {
+                  const conflict = this.formConflictState();
+                  if (conflict) {
+                    this.parkConflictForReview(conflict);
+                  } else {
+                    form.markAsDirty();
+                    this.broadcastFormStatus(false);
+                  }
+                  this.saveResponse.set(response);
+                  this.eventBus.publish(createFormSaveFailureEvent({
+                    error: '@form-server-sync-review-message',
+                    response,
+                    operation: saveOperation,
+                    formScopeId: this.eventScopeId,
+                    requestId: response.requestId,
+                  }));
+                  return false;
+                }
+              }
+              this.broadcastFormStatus();
+              return true;
+            };
             if (closing) {
+              const finishCancelledClose = async () => {
+                try {
+                  // Keep the previous revision until the editor has the saved
+                  // metadata and the user's newer edits.
+                  if (canSyncMetadata && syncMode !== 'never' && await syncSavedMetadata('preserveLocalEdits') && ownsSave()) {
+                    this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+                    this.facade.syncModelSnapshot(this.getPersistedFormValue());
+                  }
+                } catch (error: unknown) {
+                  this.loggerService.error(`${this.logName}: Error synchronising metadata after cancelling Save & Close:`, error);
+                } finally {
+                  if (ownsSave()) {
+                    this.saveNavigationPending.set(false);
+                    this.canCompleteSaveRedirect = undefined;
+                  }
+                }
+              };
               this.canCompleteSaveRedirect = () => {
                 if (!ownsSave() || !this.saveNavigationPending()) return false;
                 if (formChanged) {
@@ -1856,10 +1897,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   requireReload();
                   return false;
                 }
-                if (!this.hasChangesToSave()) return true;
-                // Keep later edits in the editor and let the user save them.
-                this.saveNavigationPending.set(false);
-                this.canCompleteSaveRedirect = undefined;
+                if (!this.hasChangesToSave()) {
+                  this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
+                  return true;
+                }
+                void finishCancelledClose();
                 return false;
               };
             }
@@ -1867,52 +1909,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.saveNavigationPending.set(true);
             }
             let modelSnapshot: Record<string, unknown> | undefined;
-            if (!formChanged && !options?.closeOnSave && !redirectLocation && this.form) {
+            if (!formChanged && !options?.closeOnSave && !redirectLocation && form) {
+              if (!await syncSavedMetadata(syncMode) || !ownsSave()) return;
               modelSnapshot = this.getPersistedFormValue();
-              if (
-                response.metadata !== null &&
-                typeof response.metadata === 'object' &&
-                !Array.isArray(response.metadata) &&
-                this.formDefMap
-              ) {
-                const syncMode = this.formDefMap.formConfig?.serverSyncOnSave ?? 'preserveLocalEdits';
-                if (syncMode !== 'never') {
-                  const syncResult = await this.serverSyncService.applyServerMetadata(
-                    currentFormValue,
-                    response.metadata,
-                    this.formDefMap,
-                    this.form,
-                    syncMode
-                  );
-                  if (!ownsSave()) return;
-                  if (this.serverSyncRequiresReview(syncResult)) {
-                    const conflict = this.formConflictState();
-                    if (conflict) {
-                      this.parkConflictForReview(conflict);
-                    } else {
-                      this.form.markAsDirty();
-                      this.broadcastFormStatus(false);
-                    }
-                    this.saveResponse.set(response);
-                    this.eventBus.publish(
-                      createFormSaveFailureEvent({
-                        error: '@form-server-sync-review-message',
-                        response,
-                        operation: saveOperation,
-                        formScopeId: this.eventScopeId,
-                        requestId: response.requestId,
-                      })
-                    );
-                    return;
-                  }
-                  modelSnapshot = this.getPersistedFormValue();
-                }
-                this.broadcastFormStatus();
-              }
             }
             if (keepChangedFormOpen) {
               requireReload();
-            } else if (formChanged) {
+            } else if (formChanged || closing) {
               this.formConflictState.set(null);
               this.formConflictReviewState.set(null);
             } else {
@@ -2658,11 +2661,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (this.allowDeleteRedirectUntil) {
-      const isDeleteRedirect = Date.now() < this.allowDeleteRedirectUntil;
-      this.allowDeleteRedirectUntil = 0;
-      if (isDeleteRedirect) return undefined;
-    }
+    if (this.deleteNavigationStarted) return undefined;
     if (!this.formConflictState() && !this.hasUnconfirmedSaveEdits && !this.hasChangesToSave()) {
       return undefined;
     }
@@ -3114,21 +3113,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!!historyDelta && !!redirectLocation) {
       throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
     }
-    if (!historyDelta && !redirectLocation) {
+    const afterDelete = options?.afterDelete;
+    if (!historyDelta && !redirectLocation && !afterDelete) {
       throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
     }
 
-    const afterDelete = options?.afterDelete;
     const loadRevision = this.formLoadRevision;
     const canCompleteSaveRedirect = this.canCompleteSaveRedirect;
     this.window?.setTimeout(() => {
-      if (this.isDestroyed || canCompleteSaveRedirect?.() === false) return;
+      if (this.isDestroyed) return;
       if (afterDelete) {
         if (this.formLoadRevision !== loadRevision) return;
-        // History traversal can fire beforeunload asynchronously, or leave the
-        // document open when there's no previous page.
-        this.allowDeleteRedirectUntil = Date.now() + 1000;
+        const navigation = (this.window as (Window & { navigation?: { canGoBack: boolean } }) | null)?.navigation;
+        // History length also counts forward entries, so confirm Back is available.
+        const goBack = !redirectLocation && (this.window?.history.length ?? 0) > 1 && navigation?.canGoBack === true;
+        this.deleteNavigationStarted = true;
+        if (goBack) {
+          this.locationService.historyGo(-1);
+        } else {
+          const recordType = encodeURIComponent(this.trimmedParams.recordType());
+          this.changeLocationHref(redirectLocation || `${this.recordService.brandingAndPortalUrl}/dashboard/${recordType}`);
+        }
+        return;
       }
+      if (canCompleteSaveRedirect?.() === false) return;
       if (historyDelta) {
         this.locationService.historyGo(historyDelta);
       } else if (redirectLocation) {

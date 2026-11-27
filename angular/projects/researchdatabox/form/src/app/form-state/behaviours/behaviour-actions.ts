@@ -1,5 +1,3 @@
-import { AbstractControl } from '@angular/forms';
-import { isEqual } from 'lodash-es';
 import {
   FieldPathKind,
   FieldPathKindType,
@@ -36,7 +34,6 @@ export interface BehaviourActionExecutionContext {
   behaviourChain: readonly number[];
   /** Expressions that caused the triggering event, carried into this behaviour's writes. */
   expressionChain?: readonly string[];
-  initializing?: boolean;
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
@@ -130,20 +127,11 @@ async function executeSetValueEntry(
 
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
-  const previousValue: unknown = resolved.control.value;
   resolved.control.setValue(value, { emitEvent: false });
-  markBehaviourValueDirty(resolved.control, previousValue, ctx);
+  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+    resolved.control.markAsDirty();
+  }
   ctx.broadcastFormStatus?.();
-}
-
-function markBehaviourValueDirty(
-  control: AbstractControl,
-  previousValue: unknown,
-  ctx: BehaviourActionExecutionContext,
-): void {
-  const { formComponent } = ctx.fieldResolverContext;
-  if (ctx.initializing && (!formComponent.hasStartedEditingOrSaving || isEqual(previousValue, control.value))) return;
-  if (!formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
 }
 
 /**
@@ -186,7 +174,6 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
-      ...(ctx.initializing ? { initializing: true } : {}),
       ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
@@ -297,11 +284,12 @@ async function applyRunTemplateInstructions(
       host = buildTargetHost(resolved.entry);
     }
 
-    const control = target === FormExpressionsTargetModelValue ? host.model?.formControl : undefined;
-    const previousValue: unknown = control?.value;
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
-    if (control) markBehaviourValueDirty(control, previousValue, ctx);
+    if (target === FormExpressionsTargetModelValue) {
+      const control = host.model?.formControl;
+      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
+    }
   }
 }
 
@@ -424,7 +412,6 @@ function buildTargetContext(
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
     cause: {
       behaviourChain: ctx.behaviourChain,
-      ...(ctx.initializing ? { initializing: true } : {}),
       ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     },

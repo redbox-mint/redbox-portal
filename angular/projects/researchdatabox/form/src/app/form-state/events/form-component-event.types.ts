@@ -23,8 +23,6 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
-  /** A notification derived from loading the form definition and its initial values. */
-  readonly initializing?: boolean;
   /** Behaviours that have already handled this explicitly emitted event chain. */
   readonly behaviourChain?: readonly number[];
   /** Expressions whose value writes caused this event; each expression skips events it caused. */
@@ -361,11 +359,6 @@ export const FormComponentEventType = {
   GENERATION_LIFECYCLE_CHANGED: 'generation.lifecycle.changed' as const,
   GENERATION_PATCH_APPLIED: 'generation.patch.applied' as const,
 } as const;
-
-export function isFormInitializationEvent(event: Pick<FormComponentEventBase, 'type' | 'sourceId' | 'initializing'>): boolean {
-  const ready = FormComponentEventType.FORM_DEFINITION_READY;
-  return event.initializing === true || event.type === ready || event.sourceId === ready;
-}
 
 export type FormComponentEventTypeValue = (typeof FormComponentEventType)[keyof typeof FormComponentEventType];
 

@@ -4,7 +4,7 @@ import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
 import { FormControl, FormGroup } from '@angular/forms';
 import { EMPTY } from 'rxjs';
-import { RecordService } from '@researchdatabox/portal-ng-common';
+import { RecordActionResult, RecordService } from '@researchdatabox/portal-ng-common';
 import { RelatedMetadata, RelatedMetadataEntry } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { fakeAsync, flushMicrotasks, tick, TestBed } from '@angular/core/testing';
@@ -14,6 +14,7 @@ import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } f
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RelatedObjectDataComponent } from './related-object-data.component';
 import { ContentComponent } from './content.component';
+import { SaveButtonComponent } from './save-button.component';
 
 describe('RelatedObjectDataComponent', () => {
   let utilityService: UtilityService;
@@ -22,7 +23,7 @@ describe('RelatedObjectDataComponent', () => {
   beforeEach(async () => {
     recordService = jasmine.createSpyObj('RecordService', ['resolveRelatedMetadata', 'update', 'create']);
     await createTestbedModule({
-      declarations: { ContentComponent, RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent },
+      declarations: { ContentComponent, RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent, SaveButtonComponent },
       providers: { RecordService: { provide: RecordService, useValue: recordService }, UtilityService: null, HandlebarsTemplateService: { provide: HandlebarsTemplateService, useValue: {} } },
     });
     utilityService = TestBed.inject(UtilityService);
@@ -376,7 +377,7 @@ describe('RelatedObjectDataComponent', () => {
     sub.unsubscribe();
   }));
 
-  it('leaves linked prefill and its metadata transfer pristine, while a later field change marks behaviour writes dirty', fakeAsync(() => {
+  it('marks linked prefill and its metadata transfer dirty and enables saving the new draft', fakeAsync(() => {
     recordService.resolveRelatedMetadata.and.callFake(async request => {
       const oid = String(request.references?.['activities']);
       return { activities: { status: 'resolved', issues: [], records: [{
@@ -394,6 +395,8 @@ describe('RelatedObjectDataComponent', () => {
         { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
         { name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
         { name: 'notes', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: 'save', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true } } },
+        { name: 'save-close', component: { class: 'SaveButtonComponent', config: { disableWhenPristine: true, closeOnSave: true } } },
       ],
       behaviours: [
         {
@@ -428,26 +431,28 @@ describe('RelatedObjectDataComponent', () => {
     void createFormAndWaitForReady(formConfig, { editMode: true, oid: '' }, undefined, assets).then(value => { result = value; });
     flushMicrotasks();
     tick();
-    const { formComponent } = result;
+    const { fixture, formComponent } = result;
+    fixture.detectChanges();
     const form = formComponent.form!;
-    expect(form.getRawValue()).toEqual({ selection: 'A', title: 'Activity A', notes: 'Activity A' });
-    expect(form.pristine).toBeTrue();
-    const prefilled = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
-    formComponent.protectUnresolvedConflictNavigation(prefilled);
-    expect(prefilled.defaultPrevented).toBeFalse();
+    const prefill = { selection: 'A', title: 'Activity A', notes: 'Activity A' };
+    expect(form.getRawValue()).toEqual(prefill);
+    for (const name of Object.keys(prefill)) expect(form.get(name)?.dirty).toBeTrue();
+    const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('redbox-form-save-button button');
+    expect(Array.from(buttons).map(button => button.disabled)).toEqual([false, false]);
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(unload);
+    expect(unload.defaultPrevented).toBeTrue();
 
-    const input = (result.fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('input')!;
-    input.value = 'B';
-    input.dispatchEvent(new Event('input'));
+    recordService.create.and.resolveTo(RecordActionResult.fromResponse({ meta: { oid: 'saved-draft', outcome: 'saved' } }));
+    buttons[0].click();
     flushMicrotasks();
     tick();
 
-    expect(form.getRawValue()).toEqual({ selection: 'B', title: 'Activity B', notes: 'Activity B' });
-    expect(form.get('title')?.dirty).toBeTrue();
-    expect(form.get('notes')?.dirty).toBeTrue();
-    const edited = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
-    formComponent.protectUnresolvedConflictNavigation(edited);
-    expect(edited.defaultPrevented).toBeTrue();
+    expect(recordService.create).toHaveBeenCalledTimes(1);
+    expect(recordService.create.calls.mostRecent().args[0]).toEqual(prefill);
+    const saved = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    formComponent.protectUnresolvedConflictNavigation(saved);
+    expect(saved.defaultPrevented).toBeFalse();
   }));
 
   it('terminates an A-to-B-to-A reference expression loop and permits a fresh explicit refresh', fakeAsync(() => {
