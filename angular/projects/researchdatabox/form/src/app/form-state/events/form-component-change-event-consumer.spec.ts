@@ -711,6 +711,31 @@ describe('FormComponentValueChangeEventConsumer', () => {
     expect(context.runtimeContext).toEqual({ requestParams: { focusTabId: 'tab2' } });
   });
 
+  for (const conditionKind of [ExpressionsConditionKind.JSONata, ExpressionsConditionKind.JSONataQuery]) {
+    it(`keeps the event-value fallback for ordinary ${conditionKind} condition failures`, fakeAsync(() => {
+      const { control, definition, component } = createSetup([{
+        name: 'copy-value',
+        config: { conditionKind, condition: 'true', target: 'model.value', template: '' },
+      }]);
+      const evaluate = jasmine.createSpy('evaluate').and.rejectWith(new Error('Expression evaluation failed'));
+      spyOn<any>(consumer, 'getCompiledItems').and.resolveTo({ evaluate });
+      consumer.bind({ component, definition });
+      const value = { label: 'Ordinary event' };
+
+      eventStream$.next({
+        type: FormComponentEventType.FIELD_VALUE_CHANGED,
+        fieldId: '/source',
+        sourceId: '*',
+        value,
+        timestamp: Date.now(),
+      });
+      tick();
+
+      expect(evaluate).toHaveBeenCalled();
+      expect(control.value).toBe(value);
+    }));
+  }
+
   it('should expose JSONataQuery runtime context under named properties', async () => {
     const expr: FormExpressionsConfigFrame = {
       name: 'jsonata-query-request-params',

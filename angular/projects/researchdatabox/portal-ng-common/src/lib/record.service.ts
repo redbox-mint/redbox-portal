@@ -32,6 +32,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
+import type { FormRowEdits, FormRowProofs } from '@researchdatabox/sails-ng-common/dist/src/record.model';
 import {
   merge as _merge,
   isUndefined as _isUndefined,
@@ -910,13 +911,21 @@ export class RecordService extends HttpClientService {
     record: any,
     targetStep: string = '',
     operation?: string,
-    concurrency: RecordMutationConcurrencyOptions = {}
+    concurrency: RecordMutationConcurrencyOptions = {},
+    formSave?: { formName?: string; rowEdits?: FormRowEdits }
   ): Promise<RecordActionResult> {
     const requestId = createSaveRequestId();
     const url = `${this.brandingAndPortalUrl}/recordmeta/${oid}`;
     try {
       const httpOptions = this.getSaveHttpOptions(requestId, targetStep, operation, concurrency, true);
-      const response = await firstValueFrom(this.http.put<unknown>(url, record, httpOptions));
+      if (formSave) {
+        let params = (httpOptions.params ?? new HttpParams()).set('formSave', 'true');
+        if (formSave.formName) params = params.set('formName', formSave.formName);
+        if (formSave.rowEdits) params = params.set('rowEdits', 'true');
+        httpOptions.params = params;
+      }
+      const body = formSave?.rowEdits ? { metadata: record, rowEdits: formSave.rowEdits } : record;
+      const response = await firstValueFrom(this.http.put<unknown>(url, body, httpOptions));
       return RecordActionResult.fromHttpResponse(response, requestId, 'update');
     } catch (error) {
       return RecordActionResult.fromHttpError(error, requestId, 'update');
@@ -1102,6 +1111,9 @@ export class RecordService extends HttpClientService {
 }
 
 export class RecordActionResult implements RecordSaveResult {
+  reloadEditForm?: boolean;
+  confirmedListPaths?: string[];
+  savedRowProofs?: FormRowProofs;
   success: boolean = false;
   oid: string = '';
   message: string = '';
@@ -1159,6 +1171,9 @@ export class RecordActionResult implements RecordSaveResult {
       oid?: string;
       message?: string;
       metadata?: Record<string, unknown> | null;
+      reloadEditForm?: boolean;
+      confirmedListPaths?: string[];
+      savedRowProofs?: FormRowProofs;
     };
     type SaveEnvelope = { meta?: SaveMeta; data?: unknown; errors?: unknown[] } & SaveMeta;
     const body = (payload && typeof payload === 'object' ? payload : {}) as SaveEnvelope;
@@ -1172,6 +1187,9 @@ export class RecordActionResult implements RecordSaveResult {
     result.oid = typeof meta.oid === 'string' ? meta.oid : '';
     result.message = typeof meta.message === 'string' ? meta.message : '';
     result.data = body.data ?? null;
+    result.reloadEditForm = meta.reloadEditForm === true;
+    result.confirmedListPaths = meta.confirmedListPaths;
+    result.savedRowProofs = meta.savedRowProofs;
     const typedProblems = Array.isArray(meta.problems)
       ? meta.problems
           .map(RecordActionResult.toSafeProblem)

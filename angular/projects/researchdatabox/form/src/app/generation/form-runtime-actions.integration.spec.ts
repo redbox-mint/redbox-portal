@@ -26,6 +26,8 @@ class FormShell {
   readonly manualConflictMergeAllowed = false;
   readonly saveResponse = signal<{ concurrency?: { resolution?: string } } | null>(null);
   readonly componentsLoaded = signal(true);
+  readonly creatingRecord = signal(false);
+  readonly hasFailedInitialImport = false;
   readonly error = signal<string | null>(null);
   readonly debugState = { isDebugEnabled: signal(false) };
   readonly componentDefArr: unknown[] = [];

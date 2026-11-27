@@ -5,6 +5,7 @@ import {
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
+  recordImportApplications,
 } from './form-component-event.types';
 import {
   FormComponentEventBaseProducerConsumer,
@@ -20,7 +21,7 @@ import {
   jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty } from 'lodash-es';
-import { isTypeFormValidationGroupsChangeRequestInfo } from '../custom-set-value.control';
+import { ControlSetValueOptions, isTypeFormValidationGroupsChangeRequestInfo } from '../custom-set-value.control';
 import { applyExpressionTarget } from '../apply-expression-target';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 /**
@@ -152,9 +153,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   /**
    * Evaluate the JSONata expression template with the provided context.
    *
-   * Design note: when compiled templates are unavailable, fall back to the raw
-   * event value. That preserves historical behaviour for partially constructed
-   * forms instead of failing closed and clearing dependent fields.
+   * Ordinary expressions use the fallback value when evaluation is unavailable.
+   * A tracked import condition must succeed before its update can be applied.
    *
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
@@ -169,13 +169,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     additionalData: object = {},
     fallbackValue: unknown = (event as { value?: unknown }).value
   ): Promise<unknown> {
+    const trackedCondition = propertyName === 'condition' &&
+      event.type === FormComponentEventType.FIELD_VALUE_CHANGED && !!event[recordImportApplications];
     const compiledItems = await this.getCompiledItems();
-    if (!compiledItems) {
-      return fallbackValue;
-    }
-
-    const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
-    if (!templateKey) {
+    const templateKey = compiledItems && this.buildExpressionPropertyKey(expression, propertyName);
+    if (!compiledItems || !templateKey) {
+      if (trackedCondition) throw new Error('Could not load the linked record import condition.');
       return fallbackValue;
     }
 
@@ -215,6 +214,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
+      if (trackedCondition) throw error;
       return fallbackValue;
     }
   }
@@ -356,7 +356,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
 
     this.setupQuerySourceUpdateListener();
 
-    const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
+    const applyExpressions = async (event: FormComponentEvent) => {
       const generation = this.bindingGeneration;
       this.eventGenerations.set(event, generation);
       const release = this.work.begin(this.relatedDataState ?? this.formComp?.relatedDataState);
@@ -374,6 +374,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
           }
         }
       } finally { release?.(); }
+    };
+    const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
+      const application = applyExpressions(event);
+      const imports = event.type === FormComponentEventType.FIELD_VALUE_CHANGED ? event[recordImportApplications] : undefined;
+      if (imports) imports.pending.push(application);
+      else await application;
     });
     this.subscriptions.set(eventType, sub);
   }
@@ -504,10 +510,12 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     targetValue: unknown,
     exprTarget: string,
     event: FormComponentEvent,
-    expression: FormExpressionsConfigFrame
+    expression: FormExpressionsConfigFrame,
+    options: ControlSetValueOptions = { emitEvent: false }
   ) {
     const generation = this.eventGenerations.get(event) ?? this.bindingGeneration;
-    const isActive = () => !this.destroyed && generation === this.bindingGeneration && event.isCurrent?.() !== false;
+    const isActive = () => !this.destroyed && generation === this.bindingGeneration && event.isCurrent?.() !== false &&
+      (event.type !== FormComponentEventType.FIELD_VALUE_CHANGED || event[recordImportApplications]?.isCurrent?.() !== false);
     if (!isActive()) return;
     // Only publish validation-groups change events in response to scoped change
     // events, don't need to respond to the broadcast events. Only want to
@@ -531,6 +539,8 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       },
       {
         isActive,
+        replaceImportedRows: options.replaceImportedRows,
+        onlyImportedRows: options.onlyImportedRows,
         eventBus: this.eventBus,
         logger: this.loggerService,
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
