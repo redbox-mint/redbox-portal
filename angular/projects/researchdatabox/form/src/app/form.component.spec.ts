@@ -231,6 +231,7 @@ describe('FormComponent', () => {
       '@dmpt-form-save-schema-warning': english['@dmpt-form-save-schema-warning'],
       '@dmpt-form-save-warning-update': english['@dmpt-form-save-warning-update'],
       '@form-conflict-stale-title': 'This record has changed',
+      '@form-conflict-reviewing-message': english['@form-conflict-reviewing-message'],
       '@form-conflict-stale-message': 'Your edits are still available.',
       '@form-conflict-review-action': 'Review changes',
       '@form-conflict-discard-action': 'Reload latest and discard mine',
@@ -718,37 +719,66 @@ describe('FormComponent', () => {
   }
 
   it('saves from the conflict review panel and shows diagnostics from the new attempt', async () => {
-    const { fixture, formComponent } = await createConcurrencyTestForm(false, undefined, 'oid-123', [
+    const { fixture, formComponent } = await createConcurrencyTestForm(true, undefined, 'oid-123', [
       { name: 'save_status', component: { class: 'SaveStatusComponent' } },
     ]);
     const shell: HTMLElement = fixture.nativeElement;
     const facade = TestBed.inject(FormStateFacade);
-    formComponent.form?.get('title')?.setValue('Mine');
-    formComponent.form?.get('title')?.markAsDirty();
+    const deleteButton = shell.querySelector<HTMLButtonElement>('.rb-form-delete-button button')!;
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Mine');
+    title.markAsDirty();
     formComponent.form?.get('notes')?.setValue('My local notes');
     formComponent.form?.get('notes')?.markAsDirty();
+    let finishTitleWrite!: () => void;
+    const titleWrite = new Promise<void>(resolve => { finishTitleWrite = resolve; });
+    const setCustomValue = jasmine.createSpy<CustomSetValueControl<string>['setCustomValue']>('setCustomValue')
+      .and.callFake(async (value, options) => {
+        await titleWrite;
+        title.setValue(value, options);
+      });
+    Object.assign(title, { setCustomValue });
     let completeRetry!: (response: RecordActionResult) => void;
     const retry = new Promise<RecordActionResult>(resolve => { completeRetry = resolve; });
-    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
-      Promise.resolve(staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } })),
-      retry,
+    let notifyRetryStarted!: () => void;
+    const retryStarted = new Promise<void>(resolve => { notifyRetryStarted = resolve; });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } }),
     );
 
     TestBed.inject(Store).dispatch(FormActions.submitForm({}));
     await fixture.whenStable();
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(shell.querySelector('.rb-form-save-status.alert-danger')?.textContent).toContain('This record has changed');
+    expect(deleteButton.disabled).toBeFalse();
     const initialAttempt = facade.submissionAttempt();
+    updateSpy.and.callFake(() => {
+      notifyRetryStarted();
+      return retry;
+    });
 
     shell.querySelector<HTMLButtonElement>('.rb-form-conflict__actions button.btn-primary')!.click();
     fixture.detectChanges();
-    expect(shell.querySelectorAll('.rb-form-conflict-review input[type="radio"]')).toHaveSize(2);
-    shell.querySelector<HTMLInputElement>('.rb-form-conflict-review input[type="radio"]')!.click();
+    const choices = shell.querySelectorAll<HTMLInputElement>('.rb-form-conflict-review input[type="radio"]');
+    expect(choices).toHaveSize(2);
+    choices[1].click();
     fixture.detectChanges();
     const resolveConflict = spyOn(formComponent, 'submitManualConflictResolution').and.callThrough();
     shell.querySelector<HTMLButtonElement>('.rb-form-conflict-review__submit button')!.click();
     await fixture.whenStable();
 
+    expect(setCustomValue).toHaveBeenCalledWith('Latest title', { emitEvent: false });
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(facade.submissionAttempt()).toBe(initialAttempt + 1);
+    expect(shell.querySelector('.rb-form-save-status.alert-danger')).toBeNull();
+    expect(shell.querySelector('.rb-form-save-status.alert-info')?.textContent).toContain(english['@dmpt-form-saving']);
+    expect(deleteButton.disabled).toBeTrue();
+
+    finishTitleWrite();
+    await retryStarted;
+    await fixture.whenStable();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
     expect(facade.submissionAttempt()).toBe(initialAttempt + 1);
     expect(shell.querySelector('.rb-form-save-status.alert-danger')).toBeNull();
     expect(shell.querySelector('.rb-form-save-status.alert-info')?.textContent).toContain(english['@dmpt-form-saving']);
@@ -759,7 +789,7 @@ describe('FormComponent', () => {
       outcome: 'saved-with-warnings',
       isComplete: () => false,
       requestId,
-      metadata: { title: 'Mine', notes: 'My local notes' },
+      metadata: { title: 'Latest title', notes: 'My local notes' },
       concurrency: {
         revision: 6,
         entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
@@ -789,7 +819,7 @@ describe('FormComponent', () => {
     const manualArgs = updateSpy.calls.argsFor(1);
     expect(manualArgs).toEqual([
       'oid-123',
-      { title: 'Mine', notes: 'My local notes' },
+      { title: 'Latest title', notes: 'My local notes' },
       '',
       undefined,
       {
@@ -803,7 +833,53 @@ describe('FormComponent', () => {
     expect(manualArgs[4]).toBeDefined();
     expect(Object.hasOwn(manualArgs[4]!, 'force')).toBeFalse();
     expect(formComponent.conflictState()).toBeNull();
-    expect(formComponent.recordBaseline()?.metadata).toEqual({ title: 'Mine', notes: 'My local notes' });
+    expect(formComponent.recordBaseline()?.metadata).toEqual({ title: 'Latest title', notes: 'My local notes' });
+  });
+
+  it('reports a failed field setter while preparing a conflict resolution and allows retry', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm(true, undefined, 'oid-123', [
+      { name: 'save_status', component: { class: 'SaveStatusComponent' } },
+    ]);
+    const shell: HTMLElement = fixture.nativeElement;
+    const facade = TestBed.inject(FormStateFacade);
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Mine');
+    title.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } }),
+    );
+    TestBed.inject(Store).dispatch(FormActions.submitForm({}));
+    await fixture.whenStable();
+    expect(shell.querySelector('.rb-form-save-status.alert-danger')?.textContent).toContain('This record has changed');
+    const initialAttempt = facade.submissionAttempt();
+
+    formComponent.reviewConflictChanges();
+    const item = formComponent.conflictReview()!.items[0];
+    const setCustomValue = jasmine.createSpy<CustomSetValueControl<string>['setCustomValue']>('setCustomValue')
+      .and.rejectWith(new Error('Title setter failed'));
+    Object.assign(title, { setCustomValue });
+
+    expect(await formComponent.submitManualConflictResolution({ [item.id]: 'latest' })).toBeFalse();
+    await fixture.whenStable();
+
+    expect(setCustomValue).toHaveBeenCalledWith('Latest title', { emitEvent: false });
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(facade.submissionAttempt()).toBe(initialAttempt + 1);
+    expect(facade.isSaving()).toBeFalse();
+    expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+    expect(shell.querySelector('.rb-form-save-status.alert-info')).toBeNull();
+    expect(shell.querySelector('.rb-form-save-status.alert-danger')?.textContent)
+      .toContain(english['@form-conflict-reviewing-message']);
+    expect(shell.querySelector<HTMLButtonElement>('.rb-form-delete-button button')!.disabled).toBeFalse();
+
+    setCustomValue.and.callFake(async (value, options) => { title.setValue(value, options); });
+    updateSpy.and.resolveTo(persistedSaveResponse({
+      oid: 'oid-123', metadata: { title: 'Latest title', notes: 'Loaded notes' },
+    }));
+    expect(await formComponent.submitManualConflictResolution({ [item.id]: 'latest' })).toBeTrue();
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(facade.isSaving()).toBeFalse();
+    expect(formComponent.conflictState()).toBeNull();
   });
 
   it('keeps the original baseline after invalid manual resolution and submits a corrected retry', async () => {

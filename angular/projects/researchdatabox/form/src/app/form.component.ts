@@ -1540,11 +1540,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }));
       return;
     }
-    if (this.saveValidationScope || _isNull(this.saveResponse())) return;
-    if (preparedResolution) {
-      if (this.facade.isSaving() || this.facade.isDeleting()) return;
-      this.store.dispatch(FormActions.beginFormSubmit());
-    }
+    if (this.saveValidationScope || _isNull(this.saveResponse()) ||
+        (this.manualConflictResolutionPending() && !preparedResolution)) return;
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
@@ -1558,7 +1555,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.saveValidationScope = validation;
     let formIsValid: boolean | undefined;
     try {
-      this.clearServerSaveProblems();
+      if (!preparedResolution) this.clearServerSaveProblems();
       if (form && options?.enabledValidationGroups) {
         this.applyValidationGroups(enabledValidationGroups, false);
       }
@@ -2471,7 +2468,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * or bypass option is added to the request.
    */
   public async submitManualConflictResolution(choices: Readonly<Record<string, FormConflictChoice>>): Promise<boolean> {
-    if (this.manualConflictResolutionPending()) {
+    if (this.manualConflictResolutionPending() || this.facade.isSaving() || this.facade.isDeleting() ||
+        this.saveValidationScope || _isNull(this.saveResponse())) {
       return false;
     }
     const form = this.form;
@@ -2515,20 +2513,23 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formConflictState.set(reviewing);
     this.formConflictReviewState.set(projection);
     this.manualConflictResolutionPending.set(true);
+    this.store.dispatch(FormActions.beginFormSubmit());
+    let failureMessage = '@form-conflict-reviewing-message';
     try {
+      this.saveResponse.set(undefined);
+      this.clearServerSaveProblems();
       const prepared = await this.prepareConflictRetry(reviewing, candidate, 'client-manually-resolved', false);
-      if (!ownsResolution() || !prepared) {
-        return false;
+      if (!ownsResolution()) return false;
+      if (prepared) {
+        // This is local Angular validation/dirtiness, not a force option sent to the API.
+        this.form?.markAllAsDirty();
+        await this.saveForm(undefined, prepared);
+        return ownsResolution() && this.saveResponse()?.wasPersisted() === true;
       }
-      // This is local Angular validation/dirtiness, not a force option sent to the API.
-      this.form?.markAllAsDirty();
-      await this.saveForm(undefined, prepared);
-      return ownsResolution() && this.saveResponse()?.wasPersisted() === true;
     } catch (error) {
-      if (ownsResolution()) {
-        this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
-      }
-      return false;
+      if (!ownsResolution()) return false;
+      this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
+      failureMessage = '@record-save-not-dispatched';
     } finally {
       if (ownsResolution()) {
         this.manualConflictResolutionPending.set(false);
@@ -2543,6 +2544,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         }
       }
     }
+    this.eventBus.publish(createFormSaveFailureEvent({
+      error: failureMessage,
+      operation: 'update',
+      formScopeId: this.eventScopeId,
+      requestId: conflict.requestId,
+    }));
+    return false;
   }
 
   /**
