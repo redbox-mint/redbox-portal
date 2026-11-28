@@ -34,7 +34,7 @@ describe('SaveStatusComponent', () => {
       '@dmpt-form-invalid': 'The form is invalid. Please correct the errors and try again.',
       '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
       '@dmpt-form-save-warning-update': 'Your changes were saved, but some follow-up processing could not be completed.',
-      '@dmpt-form-save-schema-warning': 'Saved, but the record schema check reported a problem.',
+      '@dmpt-form-save-schema-warning': english['@dmpt-form-save-schema-warning'],
       '@dmpt-form-save-advisory': 'Saved. The server reported these suggestions or adjustments:',
       '@dmpt-form-save-unknown-create': english['@dmpt-form-save-unknown-create'],
       '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
@@ -398,40 +398,56 @@ describe('SaveStatusComponent', () => {
     expect(el).toBeTruthy();
   });
 
-  it('shows the sync review message after a late edit cancels Save & Close', fakeAsync(() => {
-    let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
-    void createFormAndWaitForReady(formConfig, { editMode: true }).then(result => { mounted = result; });
-    tick(250);
-    const { fixture, formComponent } = mounted;
-    const root: HTMLElement = fixture.nativeElement;
-    const http = TestBed.inject(HttpTestingController);
-    const control = formComponent.form!.get('text_1_event')!;
-    const oid = formComponent.oid();
-    const url = formComponent.recordService.brandingAndPortalUrl;
-    spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
-    spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.resolveTo({
-      patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }],
-    });
+  for (const closeOnSave of [false, true]) {
+    it(`shows the save diagnostics alongside sync review after ${closeOnSave ? 'cancelled Save & Close' : 'Save'}`, fakeAsync(() => {
+      let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+      void createFormAndWaitForReady(formConfig, { editMode: true }).then(result => { mounted = result; });
+      tick(250);
+      const { fixture, formComponent } = mounted;
+      const root: HTMLElement = fixture.nativeElement;
+      const http = TestBed.inject(HttpTestingController);
+      const control = formComponent.form!.get('text_1_event')!;
+      const oid = formComponent.oid();
+      const url = formComponent.recordService.brandingAndPortalUrl;
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+      spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.resolveTo({
+        patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }],
+      });
 
-    TestBed.inject(Store).dispatch(FormActions.submitForm({
-      force: true, closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 1,
+      TestBed.inject(Store).dispatch(FormActions.submitForm({
+        force: true, closeOnSave, ...(closeOnSave ? { redirectLocation: '/next', redirectDelaySeconds: 1 } : {}),
+      }));
+      tick();
+      fixture.detectChanges();
+      const request = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${oid}` });
+      const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id')!;
+      request.flush({ meta: {
+        outcome: 'saved-with-warnings', oid, metadata: { text_1_event: 'Server value' },
+        problems: [
+          { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+          { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] },
+        ],
+      } });
+      tick();
+      fixture.detectChanges();
+
+      if (closeOnSave) {
+        expect(root.querySelector('.rb-form-save-status.alert-warning')?.textContent).toContain(requestId);
+        control.setValue('Late edit');
+        control.markAsDirty();
+        tick(1000);
+        fixture.detectChanges();
+      }
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent?.trim())
+        .toBe(english['@form-server-sync-review-message']);
+      const schemaWarning = root.querySelector('.rb-form-save-status.alert-warning');
+      expect(schemaWarning?.textContent).toContain('schema check reported a problem');
+      expect(schemaWarning?.textContent).toContain(requestId);
+      expect(root.querySelector('.rb-form-save-status.alert-info li')?.textContent).toContain('Consider a FoR code');
     }));
-    tick();
-    fixture.detectChanges();
-    http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${oid}` }).flush({ meta: {
-      outcome: 'saved', oid, metadata: { text_1_event: 'Server value' },
-    } });
-    tick();
-    fixture.detectChanges();
-    expect(root.querySelector('.rb-form-save-status.alert-success')).not.toBeNull();
-
-    control.setValue('Late edit');
-    control.markAsDirty();
-    tick(1000);
-    fixture.detectChanges();
-    expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent?.trim())
-      .toBe(english['@form-server-sync-review-message']);
-  }));
+  }
 
   it('should keep a persisted warning visible through SaveStatusComponent', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);

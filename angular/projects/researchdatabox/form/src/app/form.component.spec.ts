@@ -23,6 +23,7 @@ import {
 import { FormService } from './form.service';
 import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
 import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
+import { CustomSetValueControl } from './form-state/custom-set-value.control';
 import {
   FormComponentEventBus,
   createFormDeleteRequestedEvent,
@@ -1815,10 +1816,18 @@ describe('FormComponent', () => {
       const savedMetadata = { title: 'Normalised title', notes: 'Loaded notes' };
       const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
       const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
-      let finishSync!: (result: ServerSyncResult) => void;
-      const sync = spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.returnValue(
-        new Promise<ServerSyncResult>(resolve => { finishSync = resolve; })
-      );
+      const sync = spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.callThrough();
+      let finishTitleWrite!: () => void;
+      const titleWrite = new Promise<void>(resolve => { finishTitleWrite = resolve; });
+      Object.assign(title, {
+        async setCustomValue(value, options) {
+          if (value === savedMetadata.title) {
+            if (reason === 'set-failed') throw new Error('Title setter failed');
+            await titleWrite;
+          }
+          title.setValue(value, options);
+        },
+      } satisfies CustomSetValueControl<string>);
       title.setValue('Sent title');
       title.markAsDirty();
 
@@ -1832,6 +1841,7 @@ describe('FormComponent', () => {
       await saving;
       expect(formComponent.saveNavigationPending()).toBeTrue();
       expect(sync).not.toHaveBeenCalled();
+      expect(title.pristine).toBeTrue();
       notes.setValue('Edited during the redirect delay');
       notes.markAsDirty();
       tick(1000);
@@ -1839,10 +1849,11 @@ describe('FormComponent', () => {
       if (reason === 'local-edit-during-sync') {
         title.setValue('Edited during server sync');
         title.markAsDirty();
+        finishTitleWrite();
       }
-      finishSync({ patched: [], skipped: [{ name: 'title', reason }] });
       flushMicrotasks();
 
+      expect((await sync.calls.mostRecent().returnValue).skipped).toContain({ name: 'title', reason });
       expect(navigate).not.toHaveBeenCalled();
       expect(formComponent.saveNavigationPending()).toBeFalse();
       expect(formComponent.oid()).toBe(savedOid);
@@ -1854,10 +1865,9 @@ describe('FormComponent', () => {
         error: '@form-server-sync-review-message',
       }));
       expect(notes.dirty).toBeTrue();
-      expect(title.dirty).toBe(reason === 'local-edit-during-sync');
+      expect(title.dirty).toBeTrue();
       expectNavigationWarning(formComponent, true);
 
-      sync.and.callThrough();
       const update = spyOn(formComponent.recordService, 'update').and.callThrough();
       const retrying = formComponent.saveForm();
       const request = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${savedOid}` });

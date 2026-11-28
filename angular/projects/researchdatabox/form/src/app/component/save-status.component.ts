@@ -9,12 +9,13 @@ import {
   SaveStatusComponentName,
   SaveStatusFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
-import { FormComponentEventBus, FormComponentEventType, FormSaveFailureEvent, FormStateFacade } from '../form-state';
+import { FormComponentEventBus, FormComponentEventType, FormSaveFailureEvent, FormSaveSuccessEvent, FormStateFacade } from '../form-state';
 
 type SaveStatusMessageType =
   | 'saving'
   | 'deleting'
   | 'error'
+  | 'server-sync-review'
   | 'warning'
   | 'schema-warning'
   | 'unknown'
@@ -39,7 +40,7 @@ type SaveStatusMessageConfigProperty =
         <div class="rb-form-save-status alert alert-info" role="status" aria-live="polite" aria-atomic="true">
           {{ '@dmpt-form-deleting' | i18next }} <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
         </div>
-      } @else if (messageType() === 'error') {
+      } @else if (messageType() === 'error' || messageType() === 'server-sync-review') {
         <div class="rb-form-save-status alert alert-danger" role="alert" aria-atomic="true">
           @if (errorPrefix(); as prefix) {
             {{ prefix | i18next }}
@@ -73,7 +74,7 @@ type SaveStatusMessageConfigProperty =
           </ul>
         </div>
       }
-      @if (messageType() === 'warning' && hasSchemaProblems()) {
+      @if (hasSchemaProblems() && (messageType() === 'warning' || messageType() === 'server-sync-review')) {
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
           {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: requestId() } }}
         </div>
@@ -143,12 +144,15 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         this.lastHandledSaveFailure = saveFailureEvent;
         this.lastOperation.set('save');
         this.pendingOperation.set(null);
-        this.advisoryIssues.set([]);
-        this.hasSchemaProblems.set(false);
         this.clearSuccessTimeout();
-        const hideClientValidation = saveFailureEvent.kind === 'client-validation' &&
-          this.componentDefinition?.config?.showClientValidationFailure === false;
-        this.messageState.set(hideClientValidation ? null : 'error');
+        if (saveFailureEvent.kind === 'server-sync-review') {
+          this.updateSaveDiagnostics(saveFailureEvent);
+          this.messageState.set('server-sync-review');
+        } else {
+          this.advisoryIssues.set([]);
+          this.hasSchemaProblems.set(false);
+          this.messageState.set(this.componentDefinition?.config?.showClientValidationFailure === false ? null : 'error');
+        }
         return;
       }
 
@@ -171,13 +175,8 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         this.lastOperation.set('save');
         this.pendingOperation.set(null);
         const outcome = this.saveOutcome(saveSuccessEvent.response);
-        this.advisoryIssues.set(saveSuccessEvent.response?.problems?.flatMap(problem =>
-          problem.source === 'advisory' ? problem.issues : []
-        ) ?? []);
-        const schemaProblems = saveSuccessEvent.response?.problems?.some(problem => problem.source === 'schema') ?? false;
-        this.hasSchemaProblems.set(schemaProblems);
+        const schemaProblems = this.updateSaveDiagnostics(saveSuccessEvent);
         this.saveOperation.set(saveSuccessEvent.operation ?? null);
-        this.requestId.set(saveSuccessEvent.requestId ?? saveSuccessEvent.response?.requestId ?? '');
         if (outcome === 'saved-with-warnings') {
           this.clearSuccessTimeout();
           const complete = saveSuccessEvent.response &&
@@ -237,9 +236,10 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected readonly errorMessage = computed(() => this.formStateFacade.error() ?? '');
-  protected readonly messageType = computed<SaveStatusMessageType>(() =>
-    this.messageState() === 'error' && !this.errorMessage() ? null : this.messageState()
-  );
+  protected readonly messageType = computed<SaveStatusMessageType>(() => {
+    const state = this.messageState();
+    return (state === 'error' || state === 'server-sync-review') && !this.errorMessage() ? null : state;
+  });
   protected readonly errorPrefix = computed(() => {
     if (this.lastOperation() === 'delete') return '@dmpt-form-delete-error';
     const message = this.errorMessage();
@@ -274,6 +274,15 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
 
   private saveOutcome(response: { outcome?: unknown } | null | undefined): RecordSaveOutcome | undefined {
     return isRecordSaveOutcome(response?.outcome) ? response.outcome : undefined;
+  }
+
+  private updateSaveDiagnostics({ response, requestId }: FormSaveSuccessEvent | FormSaveFailureEvent): boolean {
+    const problems = response?.problems ?? [];
+    this.advisoryIssues.set(problems.flatMap(problem => problem.source === 'advisory' ? problem.issues : []));
+    const schemaProblems = problems.some(problem => problem.source === 'schema');
+    this.hasSchemaProblems.set(schemaProblems);
+    this.requestId.set(requestId ?? response?.requestId ?? '');
+    return schemaProblems;
   }
 
   private scopedEvent<T extends { formScopeId?: string }>(event: T | null): T | null {
