@@ -33,7 +33,7 @@ describe('SaveStatusComponent', () => {
       '@dmpt-form-save-error': 'Error while saving: ',
       '@dmpt-form-invalid': 'The form is invalid. Please correct the errors and try again.',
       '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
-      '@dmpt-form-save-warning-update': 'Your changes were saved, but some follow-up processing could not be completed.',
+      '@dmpt-form-save-warning-update': english['@dmpt-form-save-warning-update'],
       '@dmpt-form-save-schema-warning': english['@dmpt-form-save-schema-warning'],
       '@dmpt-form-save-advisory': 'Saved. The server reported these suggestions or adjustments:',
       '@dmpt-form-save-unknown-create': english['@dmpt-form-save-unknown-create'],
@@ -41,6 +41,7 @@ describe('SaveStatusComponent', () => {
       '@storage-workspace-save-warning': 'The storage request could not be completed. Request ID: {{requestId}}. Please contact support for help.',
       '@record-save-save-not-applied': 'The changes were not saved.',
       '@record-save-failed': english['@record-save-failed'],
+      '@record-save-not-dispatched': english['@record-save-not-dispatched'],
       '@record-save-record-validation-timeout': english['@record-save-record-validation-timeout'],
       '@form-server-sync-review-message': english['@form-server-sync-review-message'],
     });
@@ -398,8 +399,13 @@ describe('SaveStatusComponent', () => {
     expect(el).toBeTruthy();
   });
 
-  for (const closeOnSave of [false, true]) {
-    it(`shows the save diagnostics alongside sync review after ${closeOnSave ? 'cancelled Save & Close' : 'Save'}`, fakeAsync(() => {
+  for (const { label, closeOnSave, incompleteProcessing, hasSchema = true } of [
+    { label: 'after Save' },
+    { label: 'after cancelled Save & Close', closeOnSave: true },
+    { label: 'with incomplete indexing and a schema warning', incompleteProcessing: true },
+    { label: 'with incomplete indexing and no schema warning', incompleteProcessing: true, hasSchema: false },
+  ]) {
+    it(`shows the save diagnostics alongside sync review ${label}`, fakeAsync(() => {
       let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
       void createFormAndWaitForReady(formConfig, { editMode: true }).then(result => { mounted = result; });
       tick(250);
@@ -424,7 +430,8 @@ describe('SaveStatusComponent', () => {
       request.flush({ meta: {
         outcome: 'saved-with-warnings', oid, metadata: { text_1_event: 'Server value' },
         problems: [
-          { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+          ...(hasSchema ? [{ kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] }] : []),
+          ...(incompleteProcessing ? [{ kind: 'processing', phase: 'post-save', issues: [{ message: 'Indexing failed' }] }] : []),
           { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] },
         ],
       } });
@@ -442,12 +449,57 @@ describe('SaveStatusComponent', () => {
       expect(navigate).not.toHaveBeenCalled();
       expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent?.trim())
         .toBe(english['@form-server-sync-review-message']);
-      const schemaWarning = root.querySelector('.rb-form-save-status.alert-warning');
-      expect(schemaWarning?.textContent).toContain('schema check reported a problem');
-      expect(schemaWarning?.textContent).toContain(requestId);
+      const warnings = Array.from(root.querySelectorAll('.rb-form-save-status.alert-warning'), warning => warning.textContent ?? '');
+      const schemaWarning = warnings.find(warning => warning.includes('schema check reported a problem'));
+      const processingWarning = warnings.find(warning => warning.includes('some follow-up processing could not be completed'));
+      expect(schemaWarning).toEqual(hasSchema ? jasmine.stringContaining(requestId) : undefined);
+      expect(processingWarning).toEqual(incompleteProcessing ? jasmine.stringContaining(requestId) : undefined);
       expect(root.querySelector('.rb-form-save-status.alert-info li')?.textContent).toContain('Consider a FoR code');
     }));
   }
+
+  it('clears diagnostics from the previous save when a retry fails before dispatch', fakeAsync(() => {
+    let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(formConfig, { editMode: true }).then(result => { mounted = result; });
+    tick(250);
+    const { fixture, formComponent } = mounted;
+    const root: HTMLElement = fixture.nativeElement;
+    const store = TestBed.inject(Store);
+    const http = TestBed.inject(HttpTestingController);
+    const oid = formComponent.oid();
+    const saveRequest = { method: 'PUT', url: `${formComponent.recordService.brandingAndPortalUrl}/recordmeta/${oid}` };
+    spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.resolveTo({
+      patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }],
+    });
+
+    store.dispatch(FormActions.submitForm({ force: true }));
+    tick();
+    fixture.detectChanges();
+    const request = http.expectOne(saveRequest);
+    const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id')!;
+    request.flush({ meta: {
+      outcome: 'saved-with-warnings', oid, metadata: { text_1_event: 'Server value' },
+      problems: [
+        { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+        { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] },
+      ],
+    } });
+    tick();
+    fixture.detectChanges();
+    expect(root.querySelector('.rb-form-save-status.alert-warning')?.textContent).toContain(requestId);
+    expect(root.querySelector('.rb-form-save-status.alert-info li')?.textContent).toContain('Consider a FoR code');
+
+    spyOn(formComponent.recordService, 'update').and.throwError('Could not build the request');
+    store.dispatch(FormActions.submitForm({ force: true }));
+    tick();
+    fixture.detectChanges();
+
+    http.expectNone(saveRequest);
+    expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent)
+      .toContain(english['@record-save-not-dispatched']);
+    expect(root.querySelector('.rb-form-save-status.alert-warning')).toBeNull();
+    expect(root.querySelector('.rb-form-save-status.alert-info')).toBeNull();
+  }));
 
   it('should keep a persisted warning visible through SaveStatusComponent', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);

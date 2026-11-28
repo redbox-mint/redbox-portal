@@ -51,6 +51,9 @@ export class FormStateFacade {
   /** Whether form is currently saving */
   readonly isSaving: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsSaving);
 
+  /** Counts save attempts, including ones that finish before the saving status is observed. */
+  readonly submissionAttempt: Signal<number> = this.store.selectSignal(FormSelectors.selectSubmissionAttempt);
+
   /** Whether form is currently deleting */
   readonly isDeleting: Signal<boolean> = this.store.selectSignal(FormSelectors.selectIsDeleting);
 

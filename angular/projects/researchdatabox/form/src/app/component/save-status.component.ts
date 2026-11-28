@@ -1,14 +1,13 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
   emptyRecordSaveCompletion,
   isRecordSaveComplete,
-  isRecordSaveOutcome,
-  RecordSaveOutcome,
-  RecordSaveIssue,
   SaveStatusComponentName,
   SaveStatusFieldComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
+import { filter, merge } from 'rxjs';
 import { FormComponentEventBus, FormComponentEventType, FormSaveFailureEvent, FormSaveSuccessEvent, FormStateFacade } from '../form-state';
 
 type SaveStatusMessageType =
@@ -16,8 +15,6 @@ type SaveStatusMessageType =
   | 'deleting'
   | 'error'
   | 'server-sync-review'
-  | 'warning'
-  | 'schema-warning'
   | 'unknown'
   | 'success'
   | null;
@@ -47,36 +44,33 @@ type SaveStatusMessageConfigProperty =
           }
           {{ errorMessage() | i18next }}
         </div>
-      } @else if (messageType() === 'warning') {
-        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
-          {{ warningMessage() | i18next: { requestId: requestId() } }}
-        </div>
-      } @else if (messageType() === 'schema-warning') {
-        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
-          {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: requestId() } }}
-        </div>
       } @else if (messageType() === 'unknown') {
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
-          {{ unknownMessage() | i18next: { requestId: requestId() } }}
+          {{ unknownMessage() | i18next: { requestId: saveDiagnostics().requestId } }}
         </div>
       } @else if (messageType() === 'success') {
         <div class="rb-form-save-status alert alert-success" role="status" aria-live="polite" aria-atomic="true">
           {{ successMessage() | i18next }}
         </div>
       }
-      @if (advisoryIssues().length > 0) {
+      @if (saveDiagnostics().processingIncomplete) {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ warningMessage() | i18next: { requestId: saveDiagnostics().requestId } }}
+        </div>
+      }
+      @if (saveDiagnostics().hasSchemaWarning) {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: saveDiagnostics().requestId } }}
+        </div>
+      }
+      @if (saveDiagnostics().advisoryIssues.length > 0) {
         <div class="rb-form-save-status alert alert-info" role="status" aria-live="polite">
           {{ '@dmpt-form-save-advisory' | i18next }}
           <ul>
-            @for (issue of advisoryIssues(); track $index) {
+            @for (issue of saveDiagnostics().advisoryIssues; track $index) {
               <li>{{ issue.message | i18next: issue.params }}</li>
             }
           </ul>
-        </div>
-      }
-      @if (hasSchemaProblems() && (messageType() === 'warning' || messageType() === 'server-sync-review')) {
-        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
-          {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: requestId() } }}
         </div>
       }
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -92,19 +86,18 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   protected readonly formStateFacade = inject(FormStateFacade);
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly deleteSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_DELETE_SUCCESS);
-  private readonly saveSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_SUCCESS);
-  private readonly saveFailureEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_FAILURE);
+  private readonly saveEvent = toSignal(merge(
+    this.eventBus.select$(FormComponentEventType.FORM_SAVE_SUCCESS),
+    this.eventBus.select$(FormComponentEventType.FORM_SAVE_FAILURE),
+  ).pipe(filter(event => this.scopedEvent(event) !== null)), { initialValue: null });
   private readonly messageState = signal<SaveStatusMessageType>(null);
-  protected readonly advisoryIssues = signal<RecordSaveIssue[]>([]);
-  protected readonly hasSchemaProblems = signal(false);
   private readonly lastOperation = signal<'save' | 'delete' | null>(null);
-  private readonly saveOperation = signal<'create' | 'update' | null>(null);
-  private readonly pendingOperation = signal<'save' | 'delete' | null>(null);
-  protected readonly requestId = signal<string>('');
+  private readonly lastSaveResult = signal<FormSaveSuccessEvent | FormSaveFailureEvent | null>(null);
+  private pendingOperation: 'save' | 'delete' | null = null;
+  private lastSubmissionAttempt = this.formStateFacade.submissionAttempt();
   private lastHandledDeleteSuccessAt: number | null = null;
   private lastHandledSavedAt: string | null = null;
-  private lastHandledSaveSuccessAt: number | null = null;
-  private lastHandledSaveFailure: FormSaveFailureEvent | null = null;
+  private lastHandledSaveEvent: FormSaveSuccessEvent | FormSaveFailureEvent | null = null;
   private successTimeoutId: number | null = null;
 
   constructor() {
@@ -113,109 +106,75 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
     effect((onCleanup) => {
       const lastSavedAt = this.formStateFacade.lastSavedAt();
       const deleteSuccessEvent = this.scopedEvent(this.deleteSuccessEvent());
-      const saveSuccessEvent = this.scopedEvent(this.saveSuccessEvent());
-      const saveFailureEvent = this.scopedEvent(this.saveFailureEvent());
+      const saveEvent = this.saveEvent();
+      const submissionAttempt = this.formStateFacade.submissionAttempt();
       const errorMessage = this.formStateFacade.error();
       const isSaving = this.formStateFacade.isSaving();
       const isDeleting = this.formStateFacade.isDeleting();
 
-      if (isSaving) {
-        this.advisoryIssues.set([]);
-        this.hasSchemaProblems.set(false);
+      if (isSaving || submissionAttempt !== this.lastSubmissionAttempt) {
+        this.lastSubmissionAttempt = submissionAttempt;
+        this.lastSaveResult.set(null);
         this.lastOperation.set('save');
-        this.pendingOperation.set('save');
+        this.pendingOperation = 'save';
         this.clearSuccessTimeout();
-        this.messageState.set('saving');
+        this.messageState.set(isSaving ? 'saving' : null);
+      }
+      if (isSaving) {
         return;
       }
 
       if (isDeleting) {
-        this.advisoryIssues.set([]);
+        this.lastSaveResult.set(null);
         this.lastOperation.set('delete');
-        this.pendingOperation.set('delete');
+        this.pendingOperation = 'delete';
         this.clearSuccessTimeout();
         this.messageState.set('deleting');
         return;
       }
 
-      // Client validation can finish before saving is observed, and sync review can follow save success.
-      if (saveFailureEvent && saveFailureEvent !== this.lastHandledSaveFailure &&
-          (saveFailureEvent.kind === 'client-validation' || saveFailureEvent.kind === 'server-sync-review')) {
-        this.lastHandledSaveFailure = saveFailureEvent;
-        this.lastOperation.set('save');
-        this.pendingOperation.set(null);
-        this.clearSuccessTimeout();
-        if (saveFailureEvent.kind === 'server-sync-review') {
-          this.updateSaveDiagnostics(saveFailureEvent);
-          this.messageState.set('server-sync-review');
-        } else {
-          this.advisoryIssues.set([]);
-          this.hasSchemaProblems.set(false);
-          this.messageState.set(this.componentDefinition?.config?.showClientValidationFailure === false ? null : 'error');
-        }
-        return;
-      }
-
-      if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt) {
-        if (this.pendingOperation() !== 'delete') {
-          return;
-        }
+      if (deleteSuccessEvent && deleteSuccessEvent.timestamp !== this.lastHandledDeleteSuccessAt &&
+          this.pendingOperation === 'delete') {
         this.lastHandledDeleteSuccessAt = deleteSuccessEvent.timestamp;
         this.lastOperation.set('delete');
-        this.pendingOperation.set(null);
+        this.pendingOperation = null;
         this.showSuccessMessage(onCleanup);
         return;
       }
 
-      if (saveSuccessEvent && saveSuccessEvent.timestamp !== this.lastHandledSaveSuccessAt) {
-        if (this.pendingOperation() !== 'save') {
-          return;
-        }
-        this.lastHandledSaveSuccessAt = saveSuccessEvent.timestamp;
-        this.lastOperation.set('save');
-        this.pendingOperation.set(null);
-        const outcome = this.saveOutcome(saveSuccessEvent.response);
-        const schemaProblems = this.updateSaveDiagnostics(saveSuccessEvent);
-        this.saveOperation.set(saveSuccessEvent.operation ?? null);
-        if (outcome === 'saved-with-warnings') {
-          this.clearSuccessTimeout();
-          const complete = saveSuccessEvent.response &&
-            isRecordSaveComplete({
-              outcome,
-              problems: saveSuccessEvent.response.problems ?? [],
-              completion: saveSuccessEvent.response.completion ?? emptyRecordSaveCompletion(),
-            });
-          this.messageState.set(schemaProblems && complete ? 'schema-warning' : 'warning');
-        } else {
-          this.showSuccessMessage(onCleanup);
-        }
-        return;
-      }
-
-      if (saveFailureEvent && saveFailureEvent !== this.lastHandledSaveFailure) {
-        if (this.pendingOperation() !== 'save') {
-          return;
-        }
-        this.lastHandledSaveFailure = saveFailureEvent;
-        const outcome = this.saveOutcome(saveFailureEvent.response);
-        this.saveOperation.set(saveFailureEvent.operation ?? null);
-        this.requestId.set(saveFailureEvent.requestId ?? saveFailureEvent.response?.requestId ?? '');
-        if (outcome === 'unknown') {
+      if (saveEvent && saveEvent !== this.lastHandledSaveEvent) {
+        this.lastHandledSaveEvent = saveEvent;
+        if (saveEvent.type === FormComponentEventType.FORM_SAVE_FAILURE &&
+            (this.pendingOperation === 'save' || saveEvent.formScopeId || saveEvent.kind)) {
           this.lastOperation.set('save');
-          this.pendingOperation.set(null);
+          this.pendingOperation = null;
+          this.lastSaveResult.set(saveEvent);
           this.clearSuccessTimeout();
-          this.messageState.set('unknown');
+          this.messageState.set(this.saveFailureMessageType(saveEvent));
+          return;
+        }
+
+        if (saveEvent.type === FormComponentEventType.FORM_SAVE_SUCCESS && this.pendingOperation === 'save') {
+          this.lastHandledSavedAt = lastSavedAt ?? null;
+          this.lastOperation.set('save');
+          this.pendingOperation = null;
+          this.lastSaveResult.set(saveEvent);
+          if (saveEvent.response?.outcome === 'saved-with-warnings') {
+            this.messageState.set(null);
+          } else {
+            this.showSuccessMessage(onCleanup);
+          }
           return;
         }
       }
 
       if (errorMessage) {
-        const operation = this.pendingOperation();
+        const operation = this.pendingOperation;
         if (!operation) {
           return;
         }
         this.lastOperation.set(operation);
-        this.pendingOperation.set(null);
+        this.pendingOperation = null;
         this.clearSuccessTimeout();
         this.messageState.set('error');
         return;
@@ -225,17 +184,33 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         return;
       }
 
-      if (this.pendingOperation() !== 'save') {
+      if (this.pendingOperation !== 'save') {
         return;
       }
       this.lastHandledSavedAt = lastSavedAt;
       this.lastOperation.set('save');
-      this.pendingOperation.set(null);
+      this.pendingOperation = null;
       this.showSuccessMessage(onCleanup);
     });
   }
 
   protected readonly errorMessage = computed(() => this.formStateFacade.error() ?? '');
+  protected readonly saveDiagnostics = computed(() => {
+    const result = this.lastSaveResult();
+    const persisted = result?.type === FormComponentEventType.FORM_SAVE_SUCCESS || result?.kind === 'server-sync-review';
+    const response = persisted ? result.response : null;
+    const problems = response?.problems ?? [];
+    return {
+      requestId: result?.requestId ?? result?.response?.requestId ?? '',
+      advisoryIssues: problems.flatMap(problem => problem.source === 'advisory' ? problem.issues : []),
+      hasSchemaWarning: problems.some(problem => problem.source === 'schema'),
+      processingIncomplete: response?.outcome === 'saved-with-warnings' && !isRecordSaveComplete({
+        outcome: response.outcome,
+        problems,
+        completion: response.completion ?? emptyRecordSaveCompletion(),
+      }),
+    };
+  });
   protected readonly messageType = computed<SaveStatusMessageType>(() => {
     const state = this.messageState();
     return (state === 'error' || state === 'server-sync-review') && !this.errorMessage() ? null : state;
@@ -263,8 +238,8 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   });
 
   private isCreateSave(): boolean {
-    const operation = this.saveOperation();
-    return operation === 'create' || (operation === null && !this.formComponent?.trimmedParams.oid());
+    const operation = this.lastSaveResult()?.operation;
+    return operation === 'create' || (operation === undefined && !this.formComponent?.trimmedParams.oid());
   }
 
   private configuredMessage(property: SaveStatusMessageConfigProperty, fallback: string): string {
@@ -272,17 +247,10 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
     return typeof configured === 'string' && configured.trim() ? configured.trim() : fallback;
   }
 
-  private saveOutcome(response: { outcome?: unknown } | null | undefined): RecordSaveOutcome | undefined {
-    return isRecordSaveOutcome(response?.outcome) ? response.outcome : undefined;
-  }
-
-  private updateSaveDiagnostics({ response, requestId }: FormSaveSuccessEvent | FormSaveFailureEvent): boolean {
-    const problems = response?.problems ?? [];
-    this.advisoryIssues.set(problems.flatMap(problem => problem.source === 'advisory' ? problem.issues : []));
-    const schemaProblems = problems.some(problem => problem.source === 'schema');
-    this.hasSchemaProblems.set(schemaProblems);
-    this.requestId.set(requestId ?? response?.requestId ?? '');
-    return schemaProblems;
+  private saveFailureMessageType(event: FormSaveFailureEvent): SaveStatusMessageType {
+    if (event.kind === 'server-sync-review') return 'server-sync-review';
+    if (event.kind === 'client-validation' && this.componentDefinition?.config?.showClientValidationFailure === false) return null;
+    return event.response?.outcome === 'unknown' ? 'unknown' : 'error';
   }
 
   private scopedEvent<T extends { formScopeId?: string }>(event: T | null): T | null {
