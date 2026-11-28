@@ -30,6 +30,9 @@ export const submitForm = createAction(
   props<SaveOperationEventConfig & SaveRedirectEventConfig>()
 );
 
+// Starts the same submission state when the component already owns execution.
+export const beginFormSubmit = createAction('[Form] Begin Form Submit');
+
 export const submitFormSuccess = createAction(
   '[Form] Submit Form Success',
   props<{ savedData: any; lastSavedAt: string } & SaveRedirectEventConfig>()

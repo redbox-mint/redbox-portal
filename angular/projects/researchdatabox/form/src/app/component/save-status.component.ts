@@ -43,6 +43,9 @@ type SaveStatusMessageConfigProperty =
             {{ prefix | i18next }}
           }
           {{ errorMessage() | i18next }}
+          @if (messageType() === 'server-sync-review' && saveDiagnostics().requestId) {
+            {{ '@form-save-request-reference' | i18next: { requestId: saveDiagnostics().requestId } }}
+          }
         </div>
       } @else if (messageType() === 'unknown') {
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">

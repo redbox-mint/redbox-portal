@@ -44,6 +44,7 @@ describe('SaveStatusComponent', () => {
       '@record-save-not-dispatched': english['@record-save-not-dispatched'],
       '@record-save-record-validation-timeout': english['@record-save-record-validation-timeout'],
       '@form-server-sync-review-message': english['@form-server-sync-review-message'],
+      '@form-save-request-reference': english['@form-save-request-reference'],
     });
     formConfig = {
       name: 'testing',
@@ -404,6 +405,7 @@ describe('SaveStatusComponent', () => {
     { label: 'after cancelled Save & Close', closeOnSave: true },
     { label: 'with incomplete indexing and a schema warning', incompleteProcessing: true },
     { label: 'with incomplete indexing and no schema warning', incompleteProcessing: true, hasSchema: false },
+    { label: 'with only an advisory', hasSchema: false },
   ]) {
     it(`shows the save diagnostics alongside sync review ${label}`, fakeAsync(() => {
       let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
@@ -428,7 +430,8 @@ describe('SaveStatusComponent', () => {
       const request = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${oid}` });
       const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id')!;
       request.flush({ meta: {
-        outcome: 'saved-with-warnings', oid, metadata: { text_1_event: 'Server value' },
+        outcome: hasSchema || incompleteProcessing ? 'saved-with-warnings' : 'saved',
+        oid, metadata: { text_1_event: 'Server value' },
         problems: [
           ...(hasSchema ? [{ kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] }] : []),
           ...(incompleteProcessing ? [{ kind: 'processing', phase: 'post-save', issues: [{ message: 'Indexing failed' }] }] : []),
@@ -447,8 +450,9 @@ describe('SaveStatusComponent', () => {
       }
 
       expect(navigate).not.toHaveBeenCalled();
-      expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent?.trim())
-        .toBe(english['@form-server-sync-review-message']);
+      const review = root.querySelector('.rb-form-save-status.alert-danger');
+      expect(review?.textContent).toContain(english['@form-server-sync-review-message']);
+      expect(review?.textContent).toContain(requestId);
       const warnings = Array.from(root.querySelectorAll('.rb-form-save-status.alert-warning'), warning => warning.textContent ?? '');
       const schemaWarning = warnings.find(warning => warning.includes('schema check reported a problem'));
       const processingWarning = warnings.find(warning => warning.includes('some follow-up processing could not be completed'));

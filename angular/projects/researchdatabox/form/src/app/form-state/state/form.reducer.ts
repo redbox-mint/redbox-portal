@@ -49,7 +49,7 @@ export const formReducer = createReducer(
   })),
   
   // Submit actions (R4.5: increment submissionAttempt)
-  on(FormActions.submitForm, (state) => {
+  on(FormActions.submitForm, FormActions.beginFormSubmit, (state) => {
     if (isBusyStatus(state.status)) {
       return state;
     }

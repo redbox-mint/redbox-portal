@@ -1541,6 +1541,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return;
     }
     if (this.saveValidationScope || _isNull(this.saveResponse())) return;
+    if (preparedResolution) {
+      if (this.facade.isSaving() || this.facade.isDeleting()) return;
+      this.store.dispatch(FormActions.beginFormSubmit());
+    }
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';

@@ -1983,6 +1983,7 @@
   "@form-typeahead-missing-static-options": "Missing staticOptions for static typeahead source",
   "@form-typeahead-unable-to-fetch": "Unable to fetch matches",
   "@form-server-sync-review-message": "The record was saved, but some server values could not be applied. Review the form before continuing.",
+  "@form-save-request-reference": "Reference: {{requestId}}.",
   "@form-conflict-stale-title": "This record has changed",
   "@form-conflict-stale-message": "Your edits are still available. Review the differences or reload the latest record and discard your edits.",
   "@form-conflict-reviewing-title": "Review concurrent changes",

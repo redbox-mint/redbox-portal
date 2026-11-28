@@ -13,6 +13,8 @@ import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
 import { DeleteButtonComponent } from './component/delete-button.component';
 import { SaveButtonComponent } from './component/save-button.component';
+import { SaveStatusComponent } from './component/save-status.component';
+import english from '../../../../../../language-defaults/en/translation.json';
 import {
   createFormAndWaitForReady,
   createTestbedModule,
@@ -20,6 +22,7 @@ import {
   ensureApplicationRefFormComponent,
   setUpDynamicAssets,
 } from "./helpers.spec";
+import * as FormActions from './form-state/state/form.actions';
 import { FormService } from './form.service';
 import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
 import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
@@ -36,6 +39,7 @@ import {
   FormRedirectRequestedEvent,
   FormSaveFailureEvent,
   FormSaveSuccessEvent,
+  FormStateFacade,
   FormValidationBroadcastEvent,
   selectPending,
   selectStatus,
@@ -131,6 +135,7 @@ async function createConcurrencyTestForm(
   includeDelete = false,
   serverSyncOnSave?: FormConfigFrame['serverSyncOnSave'],
   oid = 'oid-123',
+  extraComponents: FormConfigFrame['componentDefinitions'] = [],
 ) {
   const result = await createFormAndWaitForReady(
     {
@@ -152,6 +157,7 @@ async function createConcurrencyTestForm(
           name: 'delete',
           component: { class: 'DeleteButtonComponent' as const, config: { label: 'Delete' } },
         }] : []),
+        ...extraComponents,
       ],
     },
     {
@@ -217,9 +223,13 @@ describe('FormComponent', () => {
           "GroupFieldComponent": GroupFieldComponent,
           DeleteButtonComponent,
           SaveButtonComponent,
+          SaveStatusComponent,
         }
       });
     Object.assign(translationService.translationMap, {
+      '@dmpt-form-saving': english['@dmpt-form-saving'],
+      '@dmpt-form-save-schema-warning': english['@dmpt-form-save-schema-warning'],
+      '@dmpt-form-save-warning-update': english['@dmpt-form-save-warning-update'],
       '@form-conflict-stale-title': 'This record has changed',
       '@form-conflict-stale-message': 'Your edits are still available.',
       '@form-conflict-review-action': 'Review changes',
@@ -707,41 +717,73 @@ describe('FormComponent', () => {
     });
   }
 
-  it('submits mine/latest manual resolution with retained local changes and no force request option', async () => {
-    const { formComponent } = await createConcurrencyTestForm();
+  it('saves from the conflict review panel and shows diagnostics from the new attempt', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm(false, undefined, 'oid-123', [
+      { name: 'save_status', component: { class: 'SaveStatusComponent' } },
+    ]);
+    const shell: HTMLElement = fixture.nativeElement;
+    const facade = TestBed.inject(FormStateFacade);
     formComponent.form?.get('title')?.setValue('Mine');
     formComponent.form?.get('title')?.markAsDirty();
     formComponent.form?.get('notes')?.setValue('My local notes');
     formComponent.form?.get('notes')?.markAsDirty();
+    let completeRetry!: (response: RecordActionResult) => void;
+    const retry = new Promise<RecordActionResult>(resolve => { completeRetry = resolve; });
     const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
       Promise.resolve(staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } })),
-      Promise.resolve(
-        persistedSaveResponse({
-          oid: 'oid-123',
-          requestId: '22222222-2222-4222-8222-222222222222',
-          metadata: { title: 'Mine', notes: 'My local notes' },
-          concurrency: {
-            revision: 6,
-            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
-            formFingerprint: 'sha256:form_1',
-            resolution: 'client-manually-resolved',
-            resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
-          },
-        })
-      )
+      retry,
     );
 
-    await formComponent.saveForm();
+    TestBed.inject(Store).dispatch(FormActions.submitForm({}));
+    await fixture.whenStable();
     expect(updateSpy).toHaveBeenCalledTimes(1);
-    formComponent.reviewConflictChanges();
-    const review = formComponent.conflictReview();
-    expect(review?.items).toHaveSize(1);
-    expect(review?.candidateWithNonOverlappingChanges).toEqual({
-      title: 'Latest title',
-      notes: 'My local notes',
-    });
+    expect(shell.querySelector('.rb-form-save-status.alert-danger')?.textContent).toContain('This record has changed');
+    const initialAttempt = facade.submissionAttempt();
 
-    await formComponent.submitManualConflictResolution({ [review!.items[0].id]: 'mine' });
+    shell.querySelector<HTMLButtonElement>('.rb-form-conflict__actions button.btn-primary')!.click();
+    fixture.detectChanges();
+    expect(shell.querySelectorAll('.rb-form-conflict-review input[type="radio"]')).toHaveSize(2);
+    shell.querySelector<HTMLInputElement>('.rb-form-conflict-review input[type="radio"]')!.click();
+    fixture.detectChanges();
+    const resolveConflict = spyOn(formComponent, 'submitManualConflictResolution').and.callThrough();
+    shell.querySelector<HTMLButtonElement>('.rb-form-conflict-review__submit button')!.click();
+    await fixture.whenStable();
+
+    expect(facade.submissionAttempt()).toBe(initialAttempt + 1);
+    expect(shell.querySelector('.rb-form-save-status.alert-danger')).toBeNull();
+    expect(shell.querySelector('.rb-form-save-status.alert-info')?.textContent).toContain(english['@dmpt-form-saving']);
+
+    const requestId = '22222222-2222-4222-8222-222222222222';
+    completeRetry(persistedSaveResponse({
+      oid: 'oid-123',
+      outcome: 'saved-with-warnings',
+      isComplete: () => false,
+      requestId,
+      metadata: { title: 'Mine', notes: 'My local notes' },
+      concurrency: {
+        revision: 6,
+        entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+      },
+      problems: [
+        { kind: 'processing', phase: 'post-save', issues: [{ message: 'Indexing failed' }] },
+        { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+        { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] },
+      ],
+    }));
+    expect(await resolveConflict.calls.mostRecent().returnValue).toBeTrue();
+    await fixture.whenStable();
+
+    expect(facade.isSaving()).toBeFalse();
+    const warnings = Array.from(shell.querySelectorAll('.rb-form-save-status.alert-warning'), warning => warning.textContent);
+    expect(warnings).toEqual([
+      jasmine.stringContaining('some follow-up processing could not be completed'),
+      jasmine.stringContaining('schema check reported a problem'),
+    ]);
+    expect(warnings.every(warning => warning?.includes(requestId))).toBeTrue();
+    expect(shell.querySelector('.rb-form-save-status.alert-info li')?.textContent).toContain('Consider a FoR code');
 
     expect(updateSpy).toHaveBeenCalledTimes(2);
     const manualArgs = updateSpy.calls.argsFor(1);

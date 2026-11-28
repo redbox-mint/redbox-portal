@@ -7354,6 +7354,11 @@
     "description": "Warning shown when authoritative server values cannot be safely synchronized into the current form",
     "contentFormat": "plain"
   },
+  "@form-save-request-reference": {
+    "category": "form",
+    "description": "Request reference shown when reviewing a saved record",
+    "contentFormat": "plain"
+  },
   "@form-conflict-stale-title": {
     "category": "form",
     "description": "Heading shown after a record revision conflict",
