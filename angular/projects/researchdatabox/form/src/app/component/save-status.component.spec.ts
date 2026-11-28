@@ -3,6 +3,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { Store } from '@ngrx/store';
 import { FormConfigFrame, FormStatus } from '@researchdatabox/sails-ng-common';
 import english from '../../../../../../../language-defaults/en/translation.json';
+import { FormServerSyncService } from '../form-server-sync.service';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
 import {
@@ -41,6 +42,7 @@ describe('SaveStatusComponent', () => {
       '@record-save-save-not-applied': 'The changes were not saved.',
       '@record-save-failed': english['@record-save-failed'],
       '@record-save-record-validation-timeout': english['@record-save-record-validation-timeout'],
+      '@form-server-sync-review-message': english['@form-server-sync-review-message'],
     });
     formConfig = {
       name: 'testing',
@@ -395,6 +397,41 @@ describe('SaveStatusComponent', () => {
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-success');
     expect(el).toBeTruthy();
   });
+
+  it('shows the sync review message after a late edit cancels Save & Close', fakeAsync(() => {
+    let mounted!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(formConfig, { editMode: true }).then(result => { mounted = result; });
+    tick(250);
+    const { fixture, formComponent } = mounted;
+    const root: HTMLElement = fixture.nativeElement;
+    const http = TestBed.inject(HttpTestingController);
+    const control = formComponent.form!.get('text_1_event')!;
+    const oid = formComponent.oid();
+    const url = formComponent.recordService.brandingAndPortalUrl;
+    spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+    spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.resolveTo({
+      patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }],
+    });
+
+    TestBed.inject(Store).dispatch(FormActions.submitForm({
+      force: true, closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 1,
+    }));
+    tick();
+    fixture.detectChanges();
+    http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${oid}` }).flush({ meta: {
+      outcome: 'saved', oid, metadata: { text_1_event: 'Server value' },
+    } });
+    tick();
+    fixture.detectChanges();
+    expect(root.querySelector('.rb-form-save-status.alert-success')).not.toBeNull();
+
+    control.setValue('Late edit');
+    control.markAsDirty();
+    tick(1000);
+    fixture.detectChanges();
+    expect(root.querySelector('.rb-form-save-status.alert-danger')?.textContent?.trim())
+      .toBe(english['@form-server-sync-review-message']);
+  }));
 
   it('should keep a persisted warning visible through SaveStatusComponent', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);

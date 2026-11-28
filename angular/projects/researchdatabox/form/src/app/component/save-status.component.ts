@@ -137,15 +137,18 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         return;
       }
 
-      // Client validation can finish before the effect observes the saving state.
-      if (saveFailureEvent?.kind === 'client-validation' && saveFailureEvent !== this.lastHandledSaveFailure) {
+      // Client validation can finish before saving is observed, and sync review can follow save success.
+      if (saveFailureEvent && saveFailureEvent !== this.lastHandledSaveFailure &&
+          (saveFailureEvent.kind === 'client-validation' || saveFailureEvent.kind === 'server-sync-review')) {
         this.lastHandledSaveFailure = saveFailureEvent;
         this.lastOperation.set('save');
         this.pendingOperation.set(null);
         this.advisoryIssues.set([]);
         this.hasSchemaProblems.set(false);
         this.clearSuccessTimeout();
-        this.messageState.set(this.componentDefinition?.config?.showClientValidationFailure === false ? null : 'error');
+        const hideClientValidation = saveFailureEvent.kind === 'client-validation' &&
+          this.componentDefinition?.config?.showClientValidationFailure === false;
+        this.messageState.set(hideClientValidation ? null : 'error');
         return;
       }
 
@@ -239,7 +242,9 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   );
   protected readonly errorPrefix = computed(() => {
     if (this.lastOperation() === 'delete') return '@dmpt-form-delete-error';
-    return this.errorMessage() === '@record-save-record-validation-timeout' ? null : '@dmpt-form-save-error';
+    const message = this.errorMessage();
+    if (message === '@record-save-record-validation-timeout' || message === '@form-server-sync-review-message') return null;
+    return '@dmpt-form-save-error';
   });
   protected readonly successMessage = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-success' : '@dmpt-form-save-success');
   protected readonly warningMessage = computed(() => {

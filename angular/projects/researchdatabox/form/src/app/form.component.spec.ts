@@ -129,6 +129,7 @@ function conflictSaveResponse(
 async function createConcurrencyTestForm(
   includeDelete = false,
   serverSyncOnSave?: FormConfigFrame['serverSyncOnSave'],
+  oid = 'oid-123',
 ) {
   const result = await createFormAndWaitForReady(
     {
@@ -153,7 +154,7 @@ async function createConcurrencyTestForm(
       ],
     },
     {
-      oid: 'oid-123',
+      oid,
       recordType: 'rdmp',
       editMode: true,
       formName: 'rdmp-draft',
@@ -166,8 +167,7 @@ async function createConcurrencyTestForm(
     }] },
   );
   result.formComponent.formDefMap?.updateConcurrency({
-    entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
-    revision: 4,
+    ...(oid ? { entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`, revision: 4 } : {}),
     formFingerprint: 'sha256:form_1',
   });
   (result.formComponent as any).captureLoadedRecordBaseline();
@@ -1073,7 +1073,7 @@ describe('FormComponent', () => {
     }
   });
 
-  it('does not publish save success or advance the baseline when post-save server sync requires review', async () => {
+  it('advances the confirmed baseline and reports review when ordinary post-save sync fails', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Mine');
     formComponent.form?.get('title')?.markAsDirty();
@@ -1086,7 +1086,7 @@ describe('FormComponent', () => {
         formFingerprint: 'sha256:form_1',
       },
     });
-    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
     spyOn((formComponent as any).serverSyncService, 'applyServerMetadata').and.resolveTo({
       patched: [],
       skipped: [{ name: 'title', reason: 'set-failed' }],
@@ -1107,9 +1107,17 @@ describe('FormComponent', () => {
       expect(successEvents).toEqual([]);
       expect(failureEvents).toHaveSize(1);
       expect(failureEvents[0].error).toBe('@form-server-sync-review-message');
-      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ revision: 4 }));
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        revision: 5,
+        entityTag: response.concurrency.entityTag,
+        metadata: response.metadata,
+      }));
       expect(formComponent.form?.dirty).toBeTrue();
       expect(formComponent.saveResponse()).toBe(response);
+
+      await formComponent.saveForm();
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update.calls.mostRecent().args[4]).toEqual(response.concurrency);
     } finally {
       successSub.unsubscribe();
       failureSub.unsubscribe();
@@ -1785,6 +1793,89 @@ describe('FormComponent', () => {
       expect(update).toHaveBeenCalledTimes(2);
       expect(update.calls.mostRecent().args[1]).toEqual({ title: 'Normalised title', notes: 'Later notes' });
       expect(update.calls.mostRecent().args[4]?.revision).toBe(5);
+      expectNavigationWarning(formComponent, false);
+    }));
+  }
+
+  for (const [oid, reason] of [
+    ['oid-123', 'local-edit-during-sync'],
+    ['', 'set-failed'],
+  ] as const) {
+    it(`uses the confirmed strict version after a cancelled Save & Close reports ${reason}`, fakeAsync(async () => {
+      const { formComponent } = await createConcurrencyTestForm(false, 'preserveLocalEdits', oid);
+      const form = formComponent.form!;
+      const title = form.get('title')!;
+      const notes = form.get('notes')!;
+      const http = TestBed.inject(HttpTestingController);
+      const url = formComponent.recordService.brandingAndPortalUrl;
+      const savedOid = oid || 'oid-created';
+      const revision = oid ? 5 : 1;
+      const entityTag = `"rb-record-v1.${revision}.${'b'.repeat(43)}"`;
+      const formFingerprint = 'sha256:form_1';
+      const savedMetadata = { title: 'Normalised title', notes: 'Loaded notes' };
+      const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
+      const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+      let finishSync!: (result: ServerSyncResult) => void;
+      const sync = spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.returnValue(
+        new Promise<ServerSyncResult>(resolve => { finishSync = resolve; })
+      );
+      title.setValue('Sent title');
+      title.markAsDirty();
+
+      const saving = formComponent.saveForm({
+        closeOnSave: true, redirectLocation: '/next', redirectDelaySeconds: 1,
+      });
+      http.expectOne({ method: oid ? 'PUT' : 'POST', url: `${url}/recordmeta/${oid || 'rdmp'}` }).flush({ meta: {
+        outcome: 'saved', oid: savedOid, metadata: savedMetadata,
+        concurrency: { mode: 'strict', revision, entityTag, formFingerprint },
+      } });
+      await saving;
+      expect(formComponent.saveNavigationPending()).toBeTrue();
+      expect(sync).not.toHaveBeenCalled();
+      notes.setValue('Edited during the redirect delay');
+      notes.markAsDirty();
+      tick(1000);
+      expect(sync).toHaveBeenCalledTimes(1);
+      if (reason === 'local-edit-during-sync') {
+        title.setValue('Edited during server sync');
+        title.markAsDirty();
+      }
+      finishSync({ patched: [], skipped: [{ name: 'title', reason }] });
+      flushMicrotasks();
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(formComponent.saveNavigationPending()).toBeFalse();
+      expect(formComponent.oid()).toBe(savedOid);
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        oid: savedOid, revision, entityTag, metadata: savedMetadata, trusted: true,
+      }));
+      expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+        type: FormComponentEventType.FORM_SAVE_FAILURE,
+        error: '@form-server-sync-review-message',
+      }));
+      expect(notes.dirty).toBeTrue();
+      expect(title.dirty).toBe(reason === 'local-edit-during-sync');
+      expectNavigationWarning(formComponent, true);
+
+      sync.and.callThrough();
+      const update = spyOn(formComponent.recordService, 'update').and.callThrough();
+      const retrying = formComponent.saveForm();
+      const request = http.expectOne({ method: 'PUT', url: `${url}/recordmeta/${savedOid}` });
+      const editedMetadata = {
+        title: reason === 'local-edit-during-sync' ? 'Edited during server sync' : 'Sent title',
+        notes: 'Edited during the redirect delay',
+      };
+      expect(update.calls.mostRecent().args[4]).toEqual({ revision, entityTag, formFingerprint });
+      expect(request.request.headers.get('If-Match')).toBe(entityTag);
+      expect(request.request.body).toEqual(editedMetadata);
+      request.flush({ meta: {
+        outcome: 'saved', oid: savedOid, metadata: editedMetadata,
+        concurrency: {
+          mode: 'strict', revision: revision + 1, entityTag: `"rb-record-v1.${revision + 1}.${'c'.repeat(43)}"`,
+          formFingerprint,
+        },
+      } });
+      await retrying;
       expectNavigationWarning(formComponent, false);
     }));
   }

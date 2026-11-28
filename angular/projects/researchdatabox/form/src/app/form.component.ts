@@ -1844,6 +1844,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const canSyncMetadata = metadata !== null && typeof metadata === 'object' &&
               !Array.isArray(metadata) && formDefMap && form;
             const finishOpenSave = async (syncMetadata: boolean, metadataSyncMode = syncMode): Promise<boolean> => {
+              if (!ownsSave()) return false;
+              // The persisted version is confirmed even if applying server values requires review.
+              this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
               if (syncMetadata && canSyncMetadata) {
                 if (metadataSyncMode !== 'never') {
                   const syncResult = await this.serverSyncService.applyServerMetadata(
@@ -1851,15 +1854,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                   );
                   if (!ownsSave()) return false;
                   if (this.serverSyncRequiresReview(syncResult)) {
-                    const conflict = this.formConflictState();
-                    if (conflict) {
-                      this.parkConflictForReview(conflict);
-                    } else {
-                      form.markAsDirty();
-                      this.broadcastFormStatus(false);
-                    }
+                    form.markAsDirty();
+                    this.broadcastFormStatus(false);
                     this.saveResponse.set(response);
                     this.eventBus.publish(createFormSaveFailureEvent({
+                      kind: 'server-sync-review',
                       error: '@form-server-sync-review-message',
                       response,
                       operation: saveOperation,
@@ -1871,9 +1870,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 }
                 this.broadcastFormStatus();
               }
-              if (!ownsSave()) return false;
-              this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
-              return true;
+              return ownsSave();
             };
             if (closing) {
               this.canCompleteSaveRedirect = () => {
