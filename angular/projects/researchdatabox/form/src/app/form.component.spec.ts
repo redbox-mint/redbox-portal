@@ -1,6 +1,6 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
-import { filter, firstValueFrom, timeout } from 'rxjs';
+import { filter, firstValueFrom, take, timeout } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
@@ -664,6 +664,8 @@ describe('FormComponent', () => {
       });
       const oldResolution = formComponent.submitManualConflictResolution({ [oldReview.items[0].id]: 'mine' });
       expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+      const pending = TestBed.inject(Store).selectSignal(selectPending);
+      expect(pending()).toContain('submitForm');
 
       const formService = TestBed.inject(FormService);
       const createComponents = formService.createFormComponentsMap.bind(formService);
@@ -684,6 +686,7 @@ describe('FormComponent', () => {
         ],
       });
       expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+      expect(pending()).not.toContain('submitForm');
 
       formComponent.form!.get('title')!.setValue('New local title');
       formComponent.form!.markAsDirty();
@@ -705,6 +708,7 @@ describe('FormComponent', () => {
       finishOld({ patched: [], skipped: [] });
       expect(await oldResolution).toBeFalse();
       expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+      expect(pending()).toEqual(['submitForm']);
       expect(formComponent.conflictState()).toBe(replacementConflict);
       expect(formComponent.form!.get('title')!.value).toBe('New local title');
 
@@ -880,6 +884,73 @@ describe('FormComponent', () => {
     expect(updateSpy).toHaveBeenCalledTimes(2);
     expect(facade.isSaving()).toBeFalse();
     expect(formComponent.conflictState()).toBeNull();
+  });
+
+  it('accepts a new save submitted synchronously on manual retry success', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm(true);
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Mine');
+    title.markAsDirty();
+    const saved = persistedSaveResponse({
+      oid: 'oid-123', metadata: { title: 'Latest title', notes: 'Loaded notes' },
+    });
+    const followUpRequestId = '33333333-3333-4333-8333-333333333333';
+    const update = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: saved.metadata })),
+      Promise.resolve(saved),
+      Promise.resolve({ ...saved, requestId: followUpRequestId }),
+    );
+    await formComponent.saveForm();
+    formComponent.reviewConflictChanges();
+    const item = formComponent.conflictReview()!.items[0];
+    const facade = TestBed.inject(FormStateFacade);
+    const saved$ = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FORM_SAVE_SUCCESS);
+    const followUp = firstValueFrom(saved$.pipe(filter(event => event.requestId === followUpRequestId), timeout(1000)));
+    saved$.pipe(take(1)).subscribe(() => facade.submit({ force: true }));
+
+    expect(await formComponent.submitManualConflictResolution({ [item.id]: 'latest' })).toBeTrue();
+    await followUp;
+    await fixture.whenStable();
+
+    expect(update).toHaveBeenCalledTimes(3);
+    expect(facade.isSaving()).toBeFalse();
+    const shell: HTMLElement = fixture.nativeElement;
+    expect(shell.querySelector<HTMLButtonElement>('.rb-form-delete-button button')!.disabled).toBeFalse();
+  });
+
+  it('settles a failed manual retry when a setter leaves an uncloneable value', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm(true);
+    const title = formComponent.form!.get('title')!;
+    title.setValue('Mine');
+    title.markAsDirty();
+    const update = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } }),
+    );
+    await formComponent.saveForm();
+    formComponent.reviewConflictChanges();
+    const item = formComponent.conflictReview()!.items[0];
+    Object.assign(title, {
+      async setCustomValue(_value, options) {
+        title.setValue({ format: () => 'Uncloneable title' }, options);
+        throw new Error('Title setter failed after writing');
+      },
+    } satisfies CustomSetValueControl<string>);
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+    const store = TestBed.inject(Store);
+
+    expect(await formComponent.submitManualConflictResolution({ [item.id]: 'latest' })).toBeFalse();
+    await fixture.whenStable();
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE,
+      error: '@record-save-not-dispatched',
+    }));
+    expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+    expect(store.selectSignal(selectStatus)()).toBe(FormStatus.READY);
+    expect(store.selectSignal(selectPending)()).not.toContain('submitForm');
+    const shell: HTMLElement = fixture.nativeElement;
+    expect(shell.querySelector<HTMLButtonElement>('.rb-form-delete-button button')!.disabled).toBeFalse();
   });
 
   it('keeps the original baseline after invalid manual resolution and submits a corrected retry', async () => {

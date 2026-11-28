@@ -400,9 +400,11 @@ describe('SaveStatusComponent', () => {
     expect(el).toBeTruthy();
   });
 
-  for (const { label, closeOnSave, incompleteProcessing, hasSchema = true } of [
+  for (const { label, closeOnSave, incompleteProcessing, hasSchema = true, rejects } of [
     { label: 'after Save' },
     { label: 'after cancelled Save & Close', closeOnSave: true },
+    { label: 'when sync rejects after Save', rejects: true },
+    { label: 'when sync rejects after cancelled Save & Close', closeOnSave: true, rejects: true },
     { label: 'with incomplete indexing and a schema warning', incompleteProcessing: true },
     { label: 'with incomplete indexing and no schema warning', incompleteProcessing: true, hasSchema: false },
     { label: 'with only an advisory', hasSchema: false },
@@ -418,9 +420,12 @@ describe('SaveStatusComponent', () => {
       const oid = formComponent.oid();
       const url = formComponent.recordService.brandingAndPortalUrl;
       const navigate = spyOn(formComponent as unknown as { changeLocationHref(url: string): void }, 'changeLocationHref');
-      spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.resolveTo({
-        patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }],
-      });
+      const sync = spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata');
+      if (rejects) {
+        sync.and.rejectWith(new Error('Revalidation failed'));
+      } else {
+        sync.and.resolveTo({ patched: [], skipped: [{ name: 'text_1_event', reason: 'set-failed' }] });
+      }
 
       TestBed.inject(Store).dispatch(FormActions.submitForm({
         force: true, closeOnSave, ...(closeOnSave ? { redirectLocation: '/next', redirectDelaySeconds: 1 } : {}),
@@ -450,6 +455,8 @@ describe('SaveStatusComponent', () => {
       }
 
       expect(navigate).not.toHaveBeenCalled();
+      expect(formComponent.recordBaseline()?.metadata).toEqual({ text_1_event: 'Server value' });
+      expect(formComponent.saveNavigationPending()).toBeFalse();
       const review = root.querySelector('.rb-form-save-status.alert-danger');
       expect(review?.textContent).toContain(english['@form-server-sync-review-message']);
       expect(review?.textContent).toContain(requestId);

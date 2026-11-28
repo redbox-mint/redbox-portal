@@ -37,7 +37,7 @@ export const formReducer = createReducer(
     initialDataLoaded: true,
     modelSnapshot: data,
     ...clearError,
-    pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData'),
+    pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData' && a !== 'submitForm'),
   })),
   
   on(FormActions.loadInitialDataFailure, (state, { error }) => ({
@@ -45,7 +45,7 @@ export const formReducer = createReducer(
     status: FormStatus.LOAD_ERROR,
     error,
     errorSource: null,
-    pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData'),
+    pendingActions: state.pendingActions.filter(a => a !== 'loadInitialData' && a !== 'submitForm'),
   })),
   
   // Submit actions (R4.5: increment submissionAttempt)

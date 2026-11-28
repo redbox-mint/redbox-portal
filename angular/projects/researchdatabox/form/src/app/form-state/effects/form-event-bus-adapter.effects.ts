@@ -296,7 +296,8 @@ export class FormEventBusAdapterEffects {
           return [submitAction, FormActions.syncModelSnapshot({ snapshot: event.modelSnapshot })];
         }
         return submitAction;
-      }
+      },
+      false
     )
   );
   /**
@@ -395,7 +396,7 @@ export class FormEventBusAdapterEffects {
         }
         return true;
       }),
-      // Request failures must settle every accepted action, including rapid retries.
+      // Save results must settle every accepted attempt, including rapid retries.
       throttleDuplicates ? throttleTime(this.config.throttleWindowMs, undefined, {
         leading: true,
         trailing: false

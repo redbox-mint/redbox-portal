@@ -168,6 +168,8 @@ interface PreparedConflictResolution {
   readonly concurrency: RecordMutationConcurrencyOptions;
 }
 
+type SaveResultEvent = ReturnType<typeof createFormSaveSuccessEvent> | ReturnType<typeof createFormSaveFailureEvent>;
+
 interface FormValueGenerationSnapshot {
   readonly generation: number;
   readonly value: Record<string, unknown>;
@@ -1513,10 +1515,81 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return this.formService.getFormFieldCompMapEntry(name, componentDefArr ?? this.componentDefArr);
   }
 
-  public async saveForm(
+  public async saveForm(options?: SaveOperationEventConfig & SaveRedirectEventConfig): Promise<void> {
+    if (this.saveValidationScope || _isNull(this.saveResponse()) || this.manualConflictResolutionPending()) return;
+    await this.runSaveAttempt(options);
+  }
+
+  private async runSaveAttempt(
     options?: SaveOperationEventConfig & SaveRedirectEventConfig,
-    preparedResolution?: PreparedConflictResolution
-  ) {
+    manualResolution?: { conflict: FormConflictState; candidate: Record<string, unknown> }
+  ): Promise<boolean> {
+    const form = this.form;
+    const loadRevision = this.formLoadRevision;
+    const identity = this.currentFormRecordIdentity();
+    const ownsForm = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision;
+    const ownsOriginalRecord = () => ownsForm() && _isEqual(this.currentFormRecordIdentity(), identity);
+    let completed = false;
+    let persisted = false;
+    const complete = (event: SaveResultEvent) => {
+      if (completed || !ownsForm()) return;
+      completed = true;
+      if (manualResolution) {
+        persisted = this.saveResponse()?.wasPersisted() === true;
+        // Subscribers can submit synchronously after NgRx handles the result.
+        this.manualConflictResolutionPending.set(false);
+        try {
+          this.refreshManualConflictReview();
+        } catch (error) {
+          this.loggerService.warn(`${this.logName}: Unable to refresh the manual conflict review.`, error);
+        }
+      }
+      this.eventBus.publish(event);
+    };
+
+    let failureMessage = '@record-save-not-dispatched';
+    try {
+      let prepared: PreparedConflictResolution | undefined;
+      if (manualResolution) {
+        this.manualConflictResolutionPending.set(true);
+        this.store.dispatch(FormActions.beginFormSubmit());
+        if (!ownsOriginalRecord()) return false;
+        this.saveResponse.set(undefined);
+        this.clearServerSaveProblems();
+        const retry = await this.prepareConflictRetry(
+          manualResolution.conflict, manualResolution.candidate, 'client-manually-resolved', false
+        );
+        if (!ownsOriginalRecord()) return false;
+        if (!retry) {
+          failureMessage = '@form-conflict-reviewing-message';
+          return false;
+        }
+        this.form?.markAllAsDirty();
+        prepared = retry;
+      }
+      await this.executeSave(options, prepared, complete);
+      return persisted && ownsOriginalRecord();
+    } catch (error) {
+      if (ownsForm()) this.loggerService.error(`${this.logName}: Error completing form submission:`, error);
+      return false;
+    } finally {
+      if (!completed && ownsOriginalRecord()) {
+        if (_isNull(this.saveResponse())) this.saveResponse.set(undefined);
+        complete(createFormSaveFailureEvent({
+          error: failureMessage,
+          operation: identity.oid ? 'update' : 'create',
+          formScopeId: this.eventScopeId,
+          requestId: manualResolution?.conflict.requestId,
+        }));
+      }
+    }
+  }
+
+  private async executeSave(
+    options: (SaveOperationEventConfig & SaveRedirectEventConfig) | undefined,
+    preparedResolution: PreparedConflictResolution | undefined,
+    complete: (event: SaveResultEvent) => void
+  ): Promise<void> {
     const form = this.form;
     const loadRevision = this.formLoadRevision;
     let saveOid = this.trimmedParams.oid();
@@ -1530,7 +1603,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!ownsSave()) return;
     const conflict = this.formConflictState();
     if (this.saveNavigationPending() || this.saveBlockedByConflict()) {
-      this.eventBus.publish(createFormSaveFailureEvent({
+      complete(createFormSaveFailureEvent({
         error: this.saveNavigationPending() || this.formReloadRequired()
           ? '@record-form-reload-required'
           : conflict?.status === 'form-changed' ? '@record-save-form-definition-changed'
@@ -1540,8 +1613,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }));
       return;
     }
-    if (this.saveValidationScope || _isNull(this.saveResponse()) ||
-        (this.manualConflictResolutionPending() && !preparedResolution)) return;
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
@@ -1553,6 +1624,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // the interactive groups before transport and before applying server errors.
     const validation = form ? { interactiveGroups: [...this.enabledValidationGroups] } : undefined;
     this.saveValidationScope = validation;
+    let validationSettled = true;
     let formIsValid: boolean | undefined;
     try {
       if (!preparedResolution) this.clearServerSaveProblems();
@@ -1560,22 +1632,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.applyValidationGroups(enabledValidationGroups, false);
       }
       if (this.formService.hasPendingValidation(form)) {
-        const validationSettled = await this.waitForPendingValidation();
+        validationSettled = await this.waitForPendingValidation();
         if (!ownsSave() || this.saveBlockedByConflict()) return;
-        if (!validationSettled) {
-          const message = '@dmpt-form-validation-timeout';
-          this.loggerService.warn(`${this.logName}: ${message}`);
-          this.eventBus.publish(createFormSaveFailureEvent({
-            kind: 'client-validation',
-            error: message,
-            formScopeId: this.eventScopeId,
-          }));
-          return;
-        }
-        this.broadcastFormStatus(false);
+        if (validationSettled) this.broadcastFormStatus(false);
       }
       formIsValid = form?.valid;
-      if (form?.invalid && formIsModified) {
+      if (validationSettled && form?.invalid && formIsModified) {
         this.revealSaveValidationErrors(form, validation?.interactiveGroups ?? this.enabledValidationGroups);
       }
     } finally {
@@ -1586,6 +1648,16 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.applyValidationGroups(validation.interactiveGroups);
         }
       }
+    }
+    if (!validationSettled) {
+      const message = '@dmpt-form-validation-timeout';
+      this.loggerService.warn(`${this.logName}: ${message}`);
+      complete(createFormSaveFailureEvent({
+        kind: 'client-validation',
+        error: message,
+        formScopeId: this.eventScopeId,
+      }));
+      return;
     }
 
     if (this.form && formIsModified) {
@@ -1632,7 +1704,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               // FORM_SUBMIT has already moved the scoped NgRx state to SAVING.
               // Completing this non-dispatched attempt keeps the form usable
               // while retaining its conflict/review state.
-              this.eventBus.publish(
+              complete(
                 createFormSaveFailureEvent({
                   error: '@form-conflict-reviewing-message',
                   operation: saveOperation,
@@ -1652,7 +1724,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             if (!ownsSave()) return;
             if (!prepared) {
               this.saveResponse.set(undefined);
-              this.eventBus.publish(
+              complete(
                 createFormSaveFailureEvent({
                   error: '@form-conflict-reviewing-message',
                   operation: saveOperation,
@@ -1720,7 +1792,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               if (!ownsSave()) return;
               if (!adopted) {
                 this.saveResponse.set(response);
-                this.eventBus.publish(
+                complete(
                   createFormSaveFailureEvent({
                     error: '@form-conflict-reviewing-message',
                     response,
@@ -1737,7 +1809,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.hasUnconfirmedSaveEdits = false;
               this.saveResponse.set(response);
               const adoptedValue = this.getPersistedFormValue();
-              this.eventBus.publish(
+              complete(
                 createFormSaveSuccessEvent({
                   savedData: adoptedValue,
                   oid: this.trimmedParams.oid(),
@@ -1761,7 +1833,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               if (!ownsSave()) return;
               if (!prepared) {
                 this.saveResponse.set(response);
-                this.eventBus.publish(
+                complete(
                   createFormSaveFailureEvent({
                     error: '@form-conflict-reviewing-message',
                     response,
@@ -1850,22 +1922,35 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               this.adoptConfirmedSaveBaseline(response, currentFormValue, requestBaseline);
               if (syncMetadata && canSyncMetadata) {
                 if (metadataSyncMode !== 'never') {
-                  const syncResult = await this.serverSyncService.applyServerMetadata(
-                    currentFormValue, metadata, formDefMap, form, metadataSyncMode
-                  );
+                  let requiresReview: boolean;
+                  try {
+                    const syncResult = await this.serverSyncService.applyServerMetadata(
+                      currentFormValue, metadata, formDefMap, form, metadataSyncMode
+                    );
+                    requiresReview = this.serverSyncRequiresReview(syncResult);
+                  } catch (error) {
+                    this.loggerService.error(`${this.logName}: Error applying saved record metadata:`, error);
+                    requiresReview = true;
+                  }
                   if (!ownsSave()) return false;
-                  if (this.serverSyncRequiresReview(syncResult)) {
+                  if (requiresReview) {
                     form.markAsDirty();
                     this.broadcastFormStatus(false);
                     this.saveResponse.set(response);
-                    this.eventBus.publish(createFormSaveFailureEvent({
+                    const event = createFormSaveFailureEvent({
                       kind: 'server-sync-review',
                       error: '@form-server-sync-review-message',
                       response,
                       operation: saveOperation,
                       formScopeId: this.eventScopeId,
                       requestId: response.requestId,
-                    }));
+                    });
+                    if (closing) {
+                      // The save already completed when it started the redirect delay.
+                      this.eventBus.publish(event);
+                    } else {
+                      complete(event);
+                    }
                     return false;
                   }
                 }
@@ -1916,7 +2001,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             }
             this.saveResponse.set(response);
             // Emit success event
-            this.eventBus.publish(
+            complete(
               createFormSaveSuccessEvent({
                 savedData: currentFormValue,
                 oid: oid,
@@ -1972,8 +2057,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             ) {
               failureMessage = validationTimeoutMessageKey;
             }
-            // Emit failure event
-            this.eventBus.publish(
+            this.saveResponse.set(response);
+            complete(
               createFormSaveFailureEvent({
                 error: failureMessage,
                 response,
@@ -1983,7 +2068,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               })
             );
           }
-          this.saveResponse.set(response);
         } catch (error: unknown) {
           if (!ownsSave()) return;
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
@@ -1996,7 +2080,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.saveResponse.set(failure);
           this.applyServerSaveProblems(failure);
           // emit failure event
-          this.eventBus.publish(createFormSaveFailureEvent({
+          complete(createFormSaveFailureEvent({
             error: errorMsg,
             response: failure,
             operation: saveOperation,
@@ -2008,7 +2092,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.saveResponse.set(undefined); // Reset save response
         this.loggerService.warn(`${this.logName}: Form is invalid. Cannot submit.`);
         // Handle form errors, e.g., show a message to the user
-        this.eventBus.publish(
+        complete(
           createFormSaveFailureEvent({
             kind: 'client-validation',
             error: '@dmpt-form-invalid',
@@ -2021,7 +2105,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // TODO: Do we need to discriminate between not defined and not modified events?
       const message = !this.form ? '@dmpt-form-not-defined' : '@dmpt-form-not-modified';
       this.loggerService.warn(`${this.logName}: ${message} Cannot submit.`);
-      this.eventBus.publish(createFormSaveFailureEvent({ error: message, formScopeId: this.eventScopeId }));
+      complete(createFormSaveFailureEvent({ error: message, formScopeId: this.eventScopeId }));
     }
   }
 
@@ -2094,7 +2178,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (!conflict || conflict.cause !== 'record-stale' || conflict.retryRecovery === 'reload-required') {
       return false;
     }
-    const local = this.getPersistedFormValue();
+    let local: Record<string, unknown>;
+    try {
+      local = this.getPersistedFormValue();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'DataCloneError') return false;
+      throw error;
+    }
     const plan = this.planLocalConflictRebase(
       baseline,
       { ...conflict, status: 'stale' },
@@ -2472,11 +2562,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.saveValidationScope || _isNull(this.saveResponse())) {
       return false;
     }
-    const form = this.form;
-    const loadRevision = this.formLoadRevision;
-    const identity = this.currentFormRecordIdentity();
-    const ownsResolution = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
-      _isEqual(this.currentFormRecordIdentity(), identity);
     const conflict = this.formConflictState();
     const baseline = this.recordBaselineState();
     if (
@@ -2512,45 +2597,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.formConflictState.set(reviewing);
     this.formConflictReviewState.set(projection);
-    this.manualConflictResolutionPending.set(true);
-    this.store.dispatch(FormActions.beginFormSubmit());
-    let failureMessage = '@form-conflict-reviewing-message';
-    try {
-      this.saveResponse.set(undefined);
-      this.clearServerSaveProblems();
-      const prepared = await this.prepareConflictRetry(reviewing, candidate, 'client-manually-resolved', false);
-      if (!ownsResolution()) return false;
-      if (prepared) {
-        // This is local Angular validation/dirtiness, not a force option sent to the API.
-        this.form?.markAllAsDirty();
-        await this.saveForm(undefined, prepared);
-        return ownsResolution() && this.saveResponse()?.wasPersisted() === true;
-      }
-    } catch (error) {
-      if (!ownsResolution()) return false;
-      this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
-      failureMessage = '@record-save-not-dispatched';
-    } finally {
-      if (ownsResolution()) {
-        this.manualConflictResolutionPending.set(false);
-        const unresolved = this.formConflictState();
-        if (unresolved?.status === 'retrying' || unresolved?.status === 'reviewing') {
-          const latestLocal = immutableFormMetadata(this.getPersistedFormValue());
-          const reviewingAgain = { ...unresolved, local: latestLocal, status: 'reviewing' } satisfies FormConflictState;
-          this.formConflictState.set(reviewingAgain);
-          this.formConflictReviewState.set(
-            this.conflictReviewService.project(reviewingAgain, latestLocal, this.componentDefArr)
-          );
-        }
-      }
-    }
-    this.eventBus.publish(createFormSaveFailureEvent({
-      error: failureMessage,
-      operation: 'update',
-      formScopeId: this.eventScopeId,
-      requestId: conflict.requestId,
-    }));
-    return false;
+    return this.runSaveAttempt(undefined, { conflict: reviewing, candidate });
+  }
+
+  private refreshManualConflictReview(): void {
+    const conflict = this.formConflictState();
+    if (conflict?.status !== 'retrying' && conflict?.status !== 'reviewing') return;
+    if (conflict.status === 'retrying') this.formConflictState.set({ ...conflict, status: 'reviewing' });
+    const local = immutableFormMetadata(this.getPersistedFormValue());
+    const reviewing = { ...conflict, local, status: 'reviewing' } satisfies FormConflictState;
+    this.formConflictState.set(reviewing);
+    this.formConflictReviewState.set(this.conflictReviewService.project(reviewing, local, this.componentDefArr));
   }
 
   /**
